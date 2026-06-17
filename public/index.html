@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AETHER - Personal Productivity Command Center</title>
+  
+  <!-- Modern Typography from Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons via CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Beautiful Custom Styles -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Background Ambient Glows -->
+  <div class="glow-orb glow-1"></div>
+  <div class="glow-orb glow-2"></div>
+  <div class="glow-orb glow-3"></div>
+
+  <!-- Main Layout Container -->
+  <div class="app-container">
+    
+    <!-- Left Navigation Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+        </div>
+        <span class="brand-name">AETHER</span>
+      </div>
+      
+      <nav class="nav-menu">
+        <a href="#dashboard" class="nav-item active" data-view="dashboard">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="#planner" class="nav-item" data-view="planner">
+          <i class="fa-solid fa-calendar-week"></i>
+          <span>Weekly Planner</span>
+        </a>
+        <a href="#projects" class="nav-item" data-view="projects">
+          <i class="fa-solid fa-diagram-project"></i>
+          <span>Project Hub</span>
+        </a>
+        <a href="#reflection" class="nav-item" data-view="reflection">
+          <i class="fa-solid fa-pen-fancy"></i>
+          <span>Daily Reflection</span>
+        </a>
+        <a href="#analytics" class="nav-item" data-view="analytics">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>Analytics</span>
+        </a>
+        <a href="#reports" class="nav-item" data-view="reports">
+          <i class="fa-solid fa-file-invoice"></i>
+          <span>Progress Reports</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-profile">
+          <div class="user-avatar" id="sidebar-user-avatar">EO</div>
+          <div class="user-details">
+            <span class="user-name" id="sidebar-user-name">E.O.B</span>
+            <span class="user-role" id="sidebar-user-role">Lead Developer</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- Top Dynamic Header -->
+      <header class="top-header">
+        <div class="header-left">
+          <h1 id="view-title">Command Center</h1>
+          <p id="view-subtitle" class="text-muted">Welcome back. Let's make today productive.</p>
+        </div>
+        
+        <div class="header-right">
+          <!-- Active Focus Timer Pill -->
+          <div id="focus-timer-pill" class="focus-timer-pill hidden">
+            <span class="pulse-indicator"></span>
+            <span id="focus-task-title">Coding Sprint</span>
+            <span class="timer-divider">|</span>
+            <span id="focus-countdown">45:00</span>
+            <button id="complete-timer-btn" title="Mark as Completed"><i class="fa-solid fa-circle-check"></i></button>
+          </div>
+
+          <!-- Live Clock -->
+          <div class="live-clock">
+            <i class="fa-regular fa-clock"></i>
+            <span id="current-time">15:58:21</span>
+          </div>
+
+          <!-- Sound Alarm Toggle -->
+          <button id="alarm-volume-toggle" class="header-action-btn" title="Toggle Alarm Chimes">
+            <i class="fa-solid fa-bell"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- VIEW: DASHBOARD -->
+      <section id="view-dashboard" class="content-view active">
+        <!-- Dashboard Hero Greeting -->
+        <div class="dashboard-hero">
+          <div class="hero-text">
+            <h2>Ready to crush your goals today?</h2>
+            <p>Welcome to Sunday Planning season. Keep following your blocks and track your study milestones.</p>
+          </div>
+          <div class="hero-stats">
+            <div class="hero-stat-card">
+              <span class="stat-num" id="hero-completion-rate">0%</span>
+              <span class="stat-label">Plan Adherence</span>
+            </div>
+            <div class="hero-stat-card">
+              <span class="stat-num" id="hero-minutes-spent">0h</span>
+              <span class="stat-label">Productive Time</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dashboard Multi-column Grid -->
+        <div class="dashboard-grid">
+          
+          <!-- Column 1: Daily Focus & Next Up -->
+          <div class="grid-card double-width">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-hourglass-half accent-purple"></i> Today's Schedule Flow</h3>
+              <span class="badge badge-indigo" id="today-day-badge">Thursday</span>
+            </div>
+            <div class="card-body">
+              <div id="dashboard-empty-schedule" class="empty-state hidden">
+                <i class="fa-regular fa-calendar-plus"></i>
+                <p>No tasks scheduled for today. Head to the Weekly Planner to time-block your week!</p>
+                <button class="btn btn-primary btn-sm" onclick="navigateToView('planner')">Schedule Now</button>
+              </div>
+              <div class="schedule-timeline" id="today-timeline-list">
+                <!-- Dynamic timeline tasks injected here -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Column 2: Quick Actions & Coach -->
+          <div class="grid-column">
+            
+            <!-- Quick Urgent Task Adder -->
+            <div class="grid-card">
+              <div class="card-header">
+                <h3><i class="fa-solid fa-bolt accent-rose"></i> Inject Task Into Schedule</h3>
+              </div>
+              <div class="card-body">
+                <form id="quick-add-form" class="quick-form">
+                  <div class="form-row">
+                    <div class="form-group half">
+                      <input type="text" id="quick-task-title" placeholder="Task title..." required>
+                    </div>
+                    <div class="form-group half">
+                      <input type="text" id="quick-task-category" list="quick-category-list" placeholder="Category" required>
+                      <datalist id="quick-category-list">
+                        <option value="coding">Coding Sprint</option>
+                        <option value="study">Study / Academic</option>
+                        <option value="exercise">Exercise / Physical</option>
+                        <option value="leisure">Leisure / Rest</option>
+                        <option value="urgent">Urgent</option>
+                      </datalist>
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group half">
+                      <select id="quick-task-day" required>
+                        <option value="Monday">Monday</option>
+                        <option value="Tuesday">Tuesday</option>
+                        <option value="Wednesday">Wednesday</option>
+                        <option value="Thursday">Thursday</option>
+                        <option value="Friday">Friday</option>
+                        <option value="Saturday">Saturday</option>
+                        <option value="Sunday">Sunday</option>
+                      </select>
+                    </div>
+                    <div class="form-group quarter">
+                      <input type="time" id="quick-task-start" value="16:00" required>
+                    </div>
+                    <div class="form-group quarter">
+                      <input type="time" id="quick-task-end" value="17:00" required>
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group half">
+                      <select id="quick-task-milestone">
+                        <option value="">No milestone</option>
+                      </select>
+                    </div>
+                    <div class="form-group half" style="justify-content:center; flex-direction:row; align-items:center; gap:0.5rem;">
+                      <input type="checkbox" id="quick-task-alarm" checked style="width:16px;height:16px;accent-color:var(--color-rose);">
+                      <label for="quick-task-alarm" style="font-size:0.82rem; color:var(--text-muted); cursor:pointer;"><i class="fa-solid fa-bell"></i> Alarm</label>
+                    </div>
+                  </div>
+                  <button type="submit" class="btn btn-rose btn-block"><i class="fa-solid fa-plus"></i> Inject Into Schedule</button>
+                </form>
+              </div>
+            </div>
+
+            <!-- Smart Habit Coach Recommendations Card -->
+            <div class="grid-card glow-card">
+              <div class="card-header">
+                <h3><i class="fa-solid fa-brain accent-emerald"></i> Habit Coach Insights</h3>
+              </div>
+              <div class="card-body" id="coach-insight-container">
+                <div class="coach-tip success">
+                  <div class="tip-icon"><i class="fa-solid fa-circle-check"></i></div>
+                  <div class="tip-content">
+                    <h4>Loading Insights...</h4>
+                    <p>Evaluating schedule data and reflections logs.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW: WEEKLY PLANNER -->
+      <section id="view-planner" class="content-view">
+        <div class="planner-toolbar">
+          <div class="toolbar-left">
+            <button class="btn btn-outline" id="sunday-ritual-btn"><i class="fa-solid fa-wand-sparkles text-purple"></i> Sunday Planning Ritual</button>
+          </div>
+          <div class="toolbar-right">
+            <button class="btn btn-primary" id="add-task-btn"><i class="fa-solid fa-plus"></i> Schedule Time Block</button>
+          </div>
+        </div>
+
+        <!-- Week of Month Banner -->
+        <div class="week-banner" id="week-banner">
+          <div class="week-banner-left">
+            <i class="fa-solid fa-calendar-week text-purple"></i>
+            <span id="week-label">Week 1 of January</span>
+          </div>
+          <span class="week-dates" id="week-dates"></span>
+        </div>
+
+        <!-- Monday - Sunday Weekly Time Grid -->
+        <div class="weekly-planner-grid">
+          <!-- Mon -->
+          <div class="planner-day-column" data-day="Monday">
+            <div class="day-column-header">
+              <span class="day-name">Monday</span>
+              <span class="day-task-count badge">0</span>
+            </div>
+            <div class="day-task-list" id="list-Monday"></div>
+          </div>
+          <!-- Tue -->
+          <div class="planner-day-column" data-day="Tuesday">
+            <div class="day-column-header">
+              <span class="day-name">Tuesday</span>
+              <span class="day-task-count badge">0</span>
+            </div>
+            <div class="day-task-list" id="list-Tuesday"></div>
+          </div>
+          <!-- Wed -->
+          <div class="planner-day-column" data-day="Wednesday">
+            <div class="day-column-header">
+              <span class="day-name">Wednesday</span>
+              <span class="day-task-count badge">0</span>
+            </div>
+            <div class="day-task-list" id="list-Wednesday"></div>
+          </div>
+          <!-- Thu -->
+          <div class="planner-day-column" data-day="Thursday">
+            <div class="day-column-header">
+              <span class="day-name">Thursday</span>
+              <span class="day-task-count badge">0</span>
+            </div>
+            <div class="day-task-list" id="list-Thursday"></div>
+          </div>
+          <!-- Fri -->
+          <div class="planner-day-column" data-day="Friday">
+            <div class="day-column-header">
+              <span class="day-name">Friday</span>
+              <span class="day-task-count badge">0</span>
+            </div>
+            <div class="day-task-list" id="list-Friday"></div>
+          </div>
+          <!-- Sat -->
+          <div class="planner-day-column" data-day="Saturday">
+            <div class="day-column-header">
+              <span class="day-name">Saturday</span>
+              <span class="day-task-count badge">0</span>
+            </div>
+            <div class="day-task-list" id="list-Saturday"></div>
+          </div>
+          <!-- Sun -->
+          <div class="planner-day-column" data-day="Sunday">
+            <div class="day-column-header">
+              <span class="day-name">Sunday</span>
+              <span class="day-task-count badge">0</span>
+            </div>
+            <div class="day-task-list" id="list-Sunday"></div>
+          </div>
+        </div>
+
+        <!-- History Calendar -->
+        <div class="grid-card mt-4">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-calendar-days accent-purple"></i> History Calendar</h3>
+            <div style="display:flex; gap: 0.5rem; align-items: center;">
+              <button class="btn btn-outline btn-sm" id="cal-prev"><i class="fa-solid fa-chevron-left"></i></button>
+              <span id="cal-month-label" style="font-weight:600; font-size:0.95rem; min-width:130px; text-align:center;"></span>
+              <button class="btn btn-outline btn-sm" id="cal-next"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="calendar-grid" id="calendar-grid"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW: PROJECT HUB -->
+      <section id="view-projects" class="content-view">
+        <div class="project-hub-header">
+          <h2>Long Term Projects & Milestones</h2>
+          <button class="btn btn-primary" id="new-project-btn"><i class="fa-solid fa-plus"></i> Create New Project</button>
+        </div>
+        
+        <div class="projects-grid" id="projects-list-container">
+          <!-- Dynamic projects card injected here -->
+        </div>
+      </section>
+
+      <!-- VIEW: DAILY REFLECTION -->
+      <section id="view-reflection" class="content-view">
+        <div class="reflection-workspace">
+          
+          <div class="reflection-left">
+            <div class="grid-card glow-card">
+              <div class="card-header">
+                <h3><i class="fa-solid fa-heart-pulse accent-purple"></i> End of Day Metrics</h3>
+              </div>
+              <div class="card-body">
+                <form id="reflection-form">
+                  <div class="form-group">
+                    <label for="reflection-date">Review Date</label>
+                    <input type="date" id="reflection-date" required>
+                  </div>
+                  
+                  <!-- Slider: Adherence -->
+                  <div class="form-group slider-group">
+                    <div class="slider-header">
+                      <label>Plan Adherence (%)</label>
+                      <span class="slider-val" id="val-adherence">85%</span>
+                    </div>
+                    <input type="range" id="score-adherence" min="0" max="100" value="85">
+                    <p class="slider-desc text-muted">What percentage of scheduled blocks did you complete?</p>
+                  </div>
+
+                  <!-- Slider: Focus -->
+                  <div class="form-group slider-group">
+                    <div class="slider-header">
+                      <label>Focus Rating (1 - 10)</label>
+                      <span class="slider-val" id="val-focus">8</span>
+                    </div>
+                    <input type="range" id="score-focus" min="1" max="100" value="80" step="10">
+                    <p class="slider-desc text-muted" id="desc-focus">Laser focused, in the zone!</p>
+                  </div>
+
+                  <!-- Slider: Energy -->
+                  <div class="form-group slider-group">
+                    <div class="slider-header">
+                      <label>Energy Level (1 - 10)</label>
+                      <span class="slider-val" id="val-energy">7</span>
+                    </div>
+                    <input type="range" id="score-energy" min="1" max="100" value="70" step="10">
+                    <p class="slider-desc text-muted" id="desc-energy">Good physical and mental drive.</p>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <div class="reflection-right">
+            <div class="grid-card">
+              <div class="card-header">
+                <h3><i class="fa-solid fa-book-open accent-emerald"></i> Reflection Journal</h3>
+              </div>
+              <div class="card-body">
+                <div class="form-group">
+                  <label for="notes-success">What went exceptionally well today?</label>
+                  <textarea id="notes-success" rows="3" placeholder="Achievements, breakthroughs, tasks that felt easy..." required></textarea>
+                </div>
+                
+                <div class="form-group">
+                  <label for="notes-struggles">What got in your way or broke your focus?</label>
+                  <textarea id="notes-struggles" rows="3" placeholder="Distractions, fatigue, unexpected tasks, blockers..." required></textarea>
+                </div>
+
+                <div class="form-group">
+                  <label for="notes-improvements">What specific adjustment will you make tomorrow?</label>
+                  <textarea id="notes-improvements" rows="3" placeholder="Change timings, mute phone, study in a library, review earlier..." required></textarea>
+                </div>
+
+                <button type="button" class="btn btn-primary btn-block" id="save-reflection-btn"><i class="fa-solid fa-floppy-disk"></i> Commit Daily Reflection</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Past reflections log list -->
+        <div class="grid-card mt-4">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-history accent-indigo"></i> Historical Reflections Log</h3>
+          </div>
+          <div class="card-body table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Adherence</th>
+                  <th>Focus</th>
+                  <th>Energy</th>
+                  <th>Highlights</th>
+                  <th>Struggles</th>
+                </tr>
+              </thead>
+              <tbody id="reflections-table-body">
+                <!-- dynamic rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW: ANALYTICS -->
+      <section id="view-analytics" class="content-view">
+        <!-- Quick stats summary banner -->
+        <div class="analytics-metrics-banner">
+          <div class="banner-card">
+            <div class="card-icon bg-purple"><i class="fa-solid fa-calendar-check"></i></div>
+            <div class="card-data">
+              <h4 id="analytics-total-tasks">0 / 0</h4>
+              <span>Tasks Completed</span>
+            </div>
+          </div>
+          <div class="banner-card">
+            <div class="card-icon bg-emerald"><i class="fa-solid fa-percentage"></i></div>
+            <div class="card-data">
+              <h4 id="analytics-completion-rate">0%</h4>
+              <span>Task Adherence Rate</span>
+            </div>
+          </div>
+          <div class="banner-card">
+            <div class="card-icon bg-cyan"><i class="fa-solid fa-clock"></i></div>
+            <div class="card-data">
+              <h4 id="analytics-time-spent">0h 0m</h4>
+              <span>Productive Hours</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="analytics-charts-grid">
+          <!-- Adherence Ratings trend line chart -->
+          <div class="grid-card double-width">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-chart-line accent-purple"></i> Daily Metrics Trends (Focus, Energy & Plan Adherence)</h3>
+            </div>
+            <div class="card-body flex-center">
+              <!-- Custom high-fidelity lightweight HTML5 canvas chart -->
+              <canvas id="trendsChart" width="600" height="280"></canvas>
+            </div>
+          </div>
+
+          <!-- Time Distribution Category bar list -->
+          <div class="grid-card">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-chart-bar accent-indigo"></i> Category Time Breakdown</h3>
+            </div>
+            <div class="card-body" id="category-distribution-container">
+              <!-- Dynamic bars injected here -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW: REPORTS -->
+      <section id="view-reports" class="content-view">
+        <div class="project-hub-header">
+          <h2>Progress & Milestone Reports</h2>
+          <div class="header-actions" style="display: flex; gap: 10px;">
+            <select id="report-type" class="report-type-select">
+              <option value="weekly">Weekly Report</option>
+              <option value="monthly">Monthly Report</option>
+              <option value="quarterly">Quarterly Report</option>
+              <option value="yearly">Yearly Report</option>
+            </select>
+            <button class="btn btn-primary" onclick="generateReport()"><i class="fa-solid fa-wand-sparkles"></i> Generate Report</button>
+          </div>
+        </div>
+        
+        <div id="report-container" class="grid-card mt-4" style="min-height: 400px; padding: 30px;">
+          <div class="text-center text-muted" style="margin-top: 100px;">
+            <i class="fa-solid fa-file-invoice fa-3x mb-3"></i>
+            <p>Select a report type and click generate to analyze your progress.</p>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ==========================================
+       MODALS SECTION
+       ========================================== -->
+
+  <!-- MODAL: ADD / EDIT TIME BLOCK -->
+  <div class="modal-overlay" id="task-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="task-modal-title">Schedule Time Block</h3>
+        <button class="modal-close" onclick="closeModal('task-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="task-form">
+          <input type="hidden" id="task-id">
+          
+          <div class="form-group">
+            <label for="task-title">Task / Session Title</label>
+            <input type="text" id="task-title" placeholder="e.g., Learn Advanced SQL" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group half">
+              <label for="task-category">Category</label>
+              <input type="text" id="task-category" list="category-list" placeholder="e.g. coding, study, urgent..." required>
+              <datalist id="category-list">
+                <option value="coding">Coding Sprint</option>
+                <option value="study">Study / Academic</option>
+                <option value="exercise">Exercise / Physical</option>
+                <option value="leisure">Leisure / Rest</option>
+                <option value="urgent">Urgent Interruption</option>
+                <option value="personal">Personal</option>
+                <option value="health">Health</option>
+                <option value="reading">Reading</option>
+                <option value="meeting">Meeting</option>
+                <option value="deep-work">Deep Work</option>
+              </datalist>
+            </div>
+            <div class="form-group half">
+              <label for="task-day">Day of the Week</label>
+              <select id="task-day" required>
+                <option value="Monday">Monday</option>
+                <option value="Tuesday">Tuesday</option>
+                <option value="Wednesday">Wednesday</option>
+                <option value="Thursday">Thursday</option>
+                <option value="Friday">Friday</option>
+                <option value="Saturday">Saturday</option>
+                <option value="Sunday">Sunday</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group half">
+              <label for="task-start">Start Time</label>
+              <input type="time" id="task-start" required>
+            </div>
+            <div class="form-group half">
+              <label for="task-end">End Time</label>
+              <input type="time" id="task-end" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="task-milestone">Associate with Milestone (Optional)</label>
+            <select id="task-milestone">
+              <option value="">None</option>
+            </select>
+          </div>
+
+          <div class="form-row items-center pt-2">
+            <div class="checkbox-container">
+              <input type="checkbox" id="task-alarm" checked>
+              <label for="task-alarm">Enable Audio Alarm & Toast Reminders</label>
+            </div>
+          </div>
+
+          <div class="form-row items-center pt-2 hidden" id="task-complete-row">
+            <div class="checkbox-container">
+              <input type="checkbox" id="task-completed">
+              <label for="task-completed">Mark as Successfully Completed</label>
+            </div>
+            <div class="form-group half mb-0 ml-auto">
+              <label for="task-actual-time" class="sr-only">Actual Minutes</label>
+              <input type="number" id="task-actual-time" placeholder="Actual minutes spent" min="0">
+            </div>
+          </div>
+
+          <div class="modal-footer mt-4">
+            <button type="button" class="btn btn-outline" onclick="closeModal('task-modal')">Cancel</button>
+            <button type="button" class="btn btn-danger hidden" id="delete-task-btn">Delete Slot</button>
+            <button type="submit" class="btn btn-primary" id="save-task-btn">Confirm Slot</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: NEW PROJECT -->
+  <div class="modal-overlay" id="project-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Create Long-Term Project</h3>
+        <button class="modal-close" onclick="closeModal('project-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="project-form">
+          <div class="form-group">
+            <label for="project-title">Project Name</label>
+            <input type="text" id="project-title" placeholder="e.g., Deep Learning Masterclass" required>
+          </div>
+          <div class="form-group">
+            <label for="project-desc">Objective Description</label>
+            <textarea id="project-desc" rows="3" placeholder="What is the ultimate target? What are the key metrics?"></textarea>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" onclick="closeModal('project-modal')">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create Project</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: VIEW REFLECTION -->
+  <div class="modal-overlay" id="view-reflection-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="vr-date">Reflection Date</h3>
+        <button class="modal-close" onclick="closeModal('view-reflection-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+          <div><span class="text-muted">Adherence:</span> <strong id="vr-adherence" class="text-emerald"></strong></div>
+          <div><span class="text-muted">Focus:</span> <strong id="vr-focus" class="text-purple"></strong></div>
+          <div><span class="text-muted">Energy:</span> <strong id="vr-energy" class="text-cyan"></strong></div>
+        </div>
+        
+        <div class="form-group">
+          <label><i class="fa-solid fa-trophy text-emerald"></i> What went well</label>
+          <div id="vr-success" class="text-muted" style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;"></div>
+        </div>
+        
+        <div class="form-group">
+          <label><i class="fa-solid fa-triangle-exclamation text-rose"></i> Struggles & Distractions</label>
+          <div id="vr-struggles" class="text-muted" style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;"></div>
+        </div>
+        
+        <div class="form-group">
+          <label><i class="fa-solid fa-lightbulb text-indigo"></i> Planned Improvements</label>
+          <div id="vr-improvements" class="text-muted" style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD MILESTONE -->
+  <div class="modal-overlay" id="milestone-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Add Milestone</h3>
+        <button class="modal-close" onclick="closeModal('milestone-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="milestone-form">
+          <input type="hidden" id="milestone-project-id">
+          <div class="form-group">
+            <label for="milestone-title">Milestone Title</label>
+            <input type="text" id="milestone-title" placeholder="e.g., Solve 50 DP Problems" required>
+          </div>
+          <div class="form-group">
+            <label for="milestone-due">Due Date</label>
+            <input type="date" id="milestone-due">
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" onclick="closeModal('milestone-modal')">Cancel</button>
+            <button type="submit" class="btn btn-primary">Add Milestone</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: SUNDAY RITUAL PLANNER -->
+  <div class="modal-overlay" id="sunday-ritual-modal">
+    <div class="modal-card wide-modal">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-wand-magic-sparkles text-purple"></i> Sunday Planning Ritual</h3>
+        <button class="modal-close" onclick="closeModal('sunday-ritual-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="sunday-wizard-container">
+          <!-- Step 1: Review Accomplishments -->
+          <div class="wizard-step active" id="wizard-step-1">
+            <h4>Step 1: Reflect on the Current Week</h4>
+            <p>Before planning the future, evaluate the present. Examine your task completion, look at your coaching alerts, and finalize any outstanding reflections.</p>
+            <div class="reflection-summary-card">
+              <div class="metric-circle" id="wizard-completion-ring">0%</div>
+              <div class="wizard-intro-stats">
+                <p><strong>This Week's Completion Rate:</strong> <span id="wizard-completion-rate">0%</span></p>
+                <p><strong>Total Hours Time-Blocked:</strong> <span id="wizard-hours">0h</span></p>
+              </div>
+            </div>
+            <div class="wizard-navigation mt-4">
+              <button class="btn btn-primary ml-auto" onclick="nextWizardStep(2)">Proceed to Milestones <i class="fa-solid fa-arrow-right"></i></button>
+            </div>
+          </div>
+
+          <!-- Step 2: Milestone Sync -->
+          <div class="wizard-step" id="wizard-step-2">
+            <h4>Step 2: Review Long-Term Project Milestones</h4>
+            <p>Which macro goals are you pushing forward this week? Check off completed milestones and make sure your key projects are moving.</p>
+            
+            <div class="wizard-checklist" id="wizard-milestones-list">
+              <!-- Dynamically populated checklist -->
+            </div>
+
+            <div class="wizard-navigation mt-4">
+              <button class="btn btn-outline" onclick="nextWizardStep(1)"><i class="fa-solid fa-arrow-left"></i> Back</button>
+              <button class="btn btn-primary ml-auto" onclick="nextWizardStep(3)">Carry Over Templates <i class="fa-solid fa-arrow-right"></i></button>
+            </div>
+          </div>
+
+          <!-- Step 3: Copy / Template forward -->
+          <div class="wizard-step" id="wizard-step-3">
+            <h4>Step 3: Seal the Schedule Plan</h4>
+            <p>You can duplicate active structured templates (like your morning study blocks and fitness routines) forward into the upcoming week, giving yourself a robust baseline.</p>
+            
+            <div class="alert alert-info">
+              <i class="fa-solid fa-circle-info"></i>
+              <span>Sealing the plan initializes the week. All current tasks will be copied or maintained, resetting completion marks to prepare you for a fresh start!</span>
+            </div>
+
+            <div class="wizard-navigation mt-4">
+              <button class="btn btn-outline" onclick="nextWizardStep(2)"><i class="fa-solid fa-arrow-left"></i> Back</button>
+              <button class="btn btn-success ml-auto" id="complete-wizard-btn"><i class="fa-solid fa-check-double"></i> Seal and Launch Next Week!</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: DAY HISTORY DETAIL -->
+  <div class="modal-overlay" id="day-detail-modal">
+    <div class="modal-card wide-modal">
+      <div class="modal-header">
+        <h3 id="day-detail-title">Day Detail</h3>
+        <button class="modal-close" onclick="closeModal('day-detail-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="day-detail-reflection" class="day-detail-reflection-banner hidden"></div>
+        <div id="day-detail-tasks"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Persistent custom alarm notification toast overlay -->
+  <div id="alarm-toast" class="alarm-toast hidden">
+    <div class="alarm-icon"><i class="fa-solid fa-bell animate-wiggle"></i></div>
+    <div class="alarm-content">
+      <h4 id="toast-title">Focus Block Started</h4>
+      <p id="toast-body">Morning Coding Prep starts now!</p>
+    </div>
+    <button class="alarm-dismiss" id="dismiss-toast-btn">DISMISS</button>
+  </div>
+
+  <!-- Client Application Engine JS -->
+  <script src="app.js"></script>
+  <script src="advanced.js"></script>
+</body>
+</html>

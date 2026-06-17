@@ -1,0 +1,4 @@
+node_modules/
+.env
+tracker.db
+server_output.txt
