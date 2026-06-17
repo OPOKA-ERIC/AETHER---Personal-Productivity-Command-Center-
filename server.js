@@ -14,11 +14,30 @@ app.use(express.static(path.join(__dirname, 'public')));
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY);
 
 // ==========================================
+// AUTH MIDDLEWARE — verifies JWT from Authorization header
+// ==========================================
+async function authMiddleware(req, res, next) {
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized: No token provided' });
+  }
+  const token = auth.split(' ')[1];
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  if (error || !user) {
+    return res.status(401).json({ error: 'Unauthorized: Invalid or expired token' });
+  }
+  req.user = user;
+  next();
+}
+
+app.use('/api', authMiddleware);
+
+// ==========================================
 // TASKS ROUTING (CRUD)
 // ==========================================
 
 app.get('/api/tasks', async (req, res) => {
-  const { data, error } = await supabase.from('tasks').select('*').order('start_time', { ascending: true });
+  const { data, error } = await supabase.from('tasks').select('*').eq('user_id', req.user.id).order('start_time', { ascending: true });
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
 });
@@ -28,20 +47,21 @@ app.post('/api/tasks', async (req, res) => {
   if (!title || !category || !day_of_week || !start_time || !end_time)
     return res.status(400).json({ error: 'Please provide all required task fields.' });
   const { data, error } = await supabase.from('tasks')
-    .insert([{ title, category, day_of_week, start_time, end_time, milestone_id: milestone_id || null, alarm_enabled: alarm_enabled !== undefined ? alarm_enabled : true }])
+    .insert([{ title, category, day_of_week, start_time, end_time, milestone_id: milestone_id || null, alarm_enabled: alarm_enabled !== undefined ? alarm_enabled : true, user_id: req.user.id }])
     .select().single();
   if (error) return res.status(500).json({ error: error.message });
   res.status(201).json(data);
 });
 
 app.put('/api/tasks/:id', async (req, res) => {
-  const { data, error } = await supabase.from('tasks').update(req.body).eq('id', req.params.id).select().single();
+  delete req.body.user_id;
+  const { data, error } = await supabase.from('tasks').update(req.body).eq('id', req.params.id).eq('user_id', req.user.id).select().single();
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
 });
 
 app.delete('/api/tasks/:id', async (req, res) => {
-  const { error } = await supabase.from('tasks').delete().eq('id', req.params.id);
+  const { error } = await supabase.from('tasks').delete().eq('id', req.params.id).eq('user_id', req.user.id);
   if (error) return res.status(500).json({ error: error.message });
   res.json({ message: 'Task deleted successfully', id: req.params.id });
 });
@@ -51,7 +71,7 @@ app.delete('/api/tasks/:id', async (req, res) => {
 // ==========================================
 
 app.get('/api/projects', async (req, res) => {
-  const { data: projects, error } = await supabase.from('projects').select('*, milestones(*)').order('created_at', { ascending: false });
+  const { data: projects, error } = await supabase.from('projects').select('*, milestones(*)').eq('user_id', req.user.id).order('created_at', { ascending: false });
   if (error) return res.status(500).json({ error: error.message });
   res.json(projects);
 });
@@ -59,14 +79,14 @@ app.get('/api/projects', async (req, res) => {
 app.post('/api/projects', async (req, res) => {
   const { title, description } = req.body;
   if (!title) return res.status(400).json({ error: 'Project title is required' });
-  const { data, error } = await supabase.from('projects').insert([{ title, description }]).select().single();
+  const { data, error } = await supabase.from('projects').insert([{ title, description, user_id: req.user.id }]).select().single();
   if (error) return res.status(500).json({ error: error.message });
   data.milestones = [];
   res.status(201).json(data);
 });
 
 app.delete('/api/projects/:id', async (req, res) => {
-  const { error } = await supabase.from('projects').delete().eq('id', req.params.id);
+  const { error } = await supabase.from('projects').delete().eq('id', req.params.id).eq('user_id', req.user.id);
   if (error) return res.status(500).json({ error: error.message });
   res.json({ message: 'Project deleted', id: req.params.id });
 });
@@ -74,21 +94,24 @@ app.delete('/api/projects/:id', async (req, res) => {
 app.post('/api/projects/:id/milestones', async (req, res) => {
   const { title, due_date } = req.body;
   if (!title) return res.status(400).json({ error: 'Milestone title is required' });
+  const { data: project } = await supabase.from('projects').select('id').eq('id', req.params.id).eq('user_id', req.user.id).single();
+  if (!project) return res.status(404).json({ error: 'Project not found' });
   const { data, error } = await supabase.from('milestones')
-    .insert([{ project_id: req.params.id, title, due_date: due_date || null }])
+    .insert([{ project_id: req.params.id, title, due_date: due_date || null, user_id: req.user.id }])
     .select().single();
   if (error) return res.status(500).json({ error: error.message });
   res.status(201).json(data);
 });
 
 app.put('/api/milestones/:id', async (req, res) => {
-  const { data, error } = await supabase.from('milestones').update(req.body).eq('id', req.params.id).select().single();
+  delete req.body.user_id;
+  const { data, error } = await supabase.from('milestones').update(req.body).eq('id', req.params.id).eq('user_id', req.user.id).select().single();
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
 });
 
 app.delete('/api/milestones/:id', async (req, res) => {
-  const { error } = await supabase.from('milestones').delete().eq('id', req.params.id);
+  const { error } = await supabase.from('milestones').delete().eq('id', req.params.id).eq('user_id', req.user.id);
   if (error) return res.status(500).json({ error: error.message });
   res.json({ message: 'Milestone deleted', id: req.params.id });
 });
@@ -98,7 +121,7 @@ app.delete('/api/milestones/:id', async (req, res) => {
 // ==========================================
 
 app.get('/api/reflections', async (req, res) => {
-  const { data, error } = await supabase.from('reflections').select('*').order('date', { ascending: false });
+  const { data, error } = await supabase.from('reflections').select('*').eq('user_id', req.user.id).order('date', { ascending: false });
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
 });
@@ -108,7 +131,7 @@ app.post('/api/reflections', async (req, res) => {
   if (!date || adherence_score === undefined || focus_score === undefined || energy_score === undefined)
     return res.status(400).json({ error: 'Please provide date, adherence, focus and energy scores.' });
   const { data, error } = await supabase.from('reflections')
-    .upsert({ date, adherence_score, focus_score, energy_score, notes_success: notes_success || '', notes_struggles: notes_struggles || '', notes_improvements: notes_improvements || '' }, { onConflict: 'date' })
+    .upsert({ date, adherence_score, focus_score, energy_score, notes_success: notes_success || '', notes_struggles: notes_struggles || '', notes_improvements: notes_improvements || '', user_id: req.user.id }, { onConflict: 'date, user_id' })
     .select().single();
   if (error) return res.status(500).json({ error: error.message });
   res.status(201).json(data);
@@ -119,8 +142,8 @@ app.post('/api/reflections', async (req, res) => {
 // ==========================================
 app.get('/api/analytics', async (req, res) => {
   try {
-    const { data: tasks, error: tasksError } = await supabase.from('tasks').select('*');
-    const { data: reflections, error: refError } = await supabase.from('reflections').select('*').order('date', { ascending: true });
+    const { data: tasks, error: tasksError } = await supabase.from('tasks').select('*').eq('user_id', req.user.id);
+    const { data: reflections, error: refError } = await supabase.from('reflections').select('*').eq('user_id', req.user.id).order('date', { ascending: true });
     
     if (tasksError) throw tasksError;
     if (refError) throw refError;

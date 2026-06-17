@@ -11,7 +11,9 @@ const STATE = {
   isAlarmMuted: false,
   activeTimer: null,
   coachingData: null,
-  taskTimers: {}  // { taskId: { startedAt, accumulatedMs, paused } }
+  taskTimers: {},
+  token: null,
+  user: null
 };
 
 // Web Audio API Ambient Synthesizer
@@ -76,21 +78,30 @@ function playAlarmChime() {
   }
 }
 
-// API Service Communicator
+function apiHeaders() {
+  const h = { 'Content-Type': 'application/json' };
+  if (STATE.token) h['Authorization'] = 'Bearer ' + STATE.token;
+  return h;
+}
+
+function apiFetch(url, opts = {}) {
+  return fetch(url, { ...opts, headers: { ...apiHeaders(), ...opts.headers } }).then(r => r.json());
+}
+
 const API = {
-  fetchTasks: async () => (await fetch('/api/tasks')).json(),
-  saveTask: async (d) => (await fetch('/api/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) })).json(),
-  updateTask: async (id, d) => (await fetch(`/api/tasks/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) })).json(),
-  deleteTask: async (id) => (await fetch(`/api/tasks/${id}`, { method: 'DELETE' })).json(),
-  fetchProjects: async () => (await fetch('/api/projects')).json(),
-  saveProject: async (d) => (await fetch('/api/projects', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) })).json(),
-  deleteProject: async (id) => (await fetch(`/api/projects/${id}`, { method: 'DELETE' })).json(),
-  saveMilestone: async (pid, d) => (await fetch(`/api/projects/${pid}/milestones`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) })).json(),
-  updateMilestone: async (id, d) => (await fetch(`/api/milestones/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) })).json(),
-  deleteMilestone: async (id) => (await fetch(`/api/milestones/${id}`, { method: 'DELETE' })).json(),
-  fetchReflections: async () => (await fetch('/api/reflections')).json(),
-  saveReflection: async (d) => (await fetch('/api/reflections', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) })).json(),
-  fetchAnalytics: async () => (await fetch('/api/analytics')).json()
+  fetchTasks: () => apiFetch('/api/tasks'),
+  saveTask: (d) => apiFetch('/api/tasks', { method: 'POST', body: JSON.stringify(d) }),
+  updateTask: (id, d) => apiFetch(`/api/tasks/${id}`, { method: 'PUT', body: JSON.stringify(d) }),
+  deleteTask: (id) => apiFetch(`/api/tasks/${id}`, { method: 'DELETE' }),
+  fetchProjects: () => apiFetch('/api/projects'),
+  saveProject: (d) => apiFetch('/api/projects', { method: 'POST', body: JSON.stringify(d) }),
+  deleteProject: (id) => apiFetch(`/api/projects/${id}`, { method: 'DELETE' }),
+  saveMilestone: (pid, d) => apiFetch(`/api/projects/${pid}/milestones`, { method: 'POST', body: JSON.stringify(d) }),
+  updateMilestone: (id, d) => apiFetch(`/api/milestones/${id}`, { method: 'PUT', body: JSON.stringify(d) }),
+  deleteMilestone: (id) => apiFetch(`/api/milestones/${id}`, { method: 'DELETE' }),
+  fetchReflections: () => apiFetch('/api/reflections'),
+  saveReflection: (d) => apiFetch('/api/reflections', { method: 'POST', body: JSON.stringify(d) }),
+  fetchAnalytics: () => apiFetch('/api/analytics')
 };
 
 // ==========================================
@@ -1208,9 +1219,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // SPA routing
   window.addEventListener('hashchange', () => {
-    navigateToView(window.location.hash.slice(1) || 'dashboard');
+    if (STATE.token) navigateToView(window.location.hash.slice(1) || 'dashboard');
   });
-  navigateToView(window.location.hash.slice(1) || 'dashboard');
 
   document.querySelectorAll('.nav-menu a').forEach(link => {
     link.addEventListener('click', (e) => {
@@ -1465,4 +1475,11 @@ window.addEventListener('DOMContentLoaded', () => {
     if (!STATE.isAlarmMuted) playAlarmChime();
   });
 
+  // Auth gate — boot app only after session verified
+  initAuth();
 });
+
+// Called by auth.js after successful authentication
+function bootApp() {
+  navigateToView(window.location.hash.slice(1) || 'dashboard');
+}

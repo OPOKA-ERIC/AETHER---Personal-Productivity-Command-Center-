@@ -1965,3 +1965,180 @@ textarea:focus, input[type="text"]:focus, input[type="date"]:focus, input[type="
   border-radius: 20px;
   flex-shrink: 0;
 }
+
+/* =============================
+   AUTH OVERLAY
+   ============================= */
+.auth-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(4, 6, 15, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+.auth-overlay.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: rgba(18, 22, 40, 0.95);
+  border: 1px solid rgba(120, 90, 200, 0.2);
+  border-radius: 20px;
+  padding: 2.5rem 2rem;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6), 0 0 80px rgba(120, 90, 200, 0.08);
+  animation: fadeUp 0.4s ease;
+}
+
+.auth-brand {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+.auth-brand .brand-logo {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 0.75rem;
+  background: linear-gradient(135deg, rgba(120, 90, 200, 0.25), rgba(6, 182, 212, 0.2));
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  color: var(--color-purple);
+  border: 1px solid rgba(120, 90, 200, 0.3);
+}
+.auth-brand h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  background: linear-gradient(135deg, var(--color-purple), var(--color-cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.auth-brand p {
+  font-size: 0.82rem;
+  margin-top: 0.25rem;
+}
+
+.auth-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 1.25rem;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  padding: 3px;
+}
+.auth-tab {
+  flex: 1;
+  padding: 0.6rem 1rem;
+  text-align: center;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s;
+}
+.auth-tab.active {
+  background: rgba(120, 90, 200, 0.25);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(120, 90, 200, 0.15);
+}
+
+.auth-form {
+  display: none;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+.auth-form.active {
+  display: flex;
+}
+.auth-form .form-group {
+  margin-bottom: 0;
+}
+.auth-form input[type="email"],
+.auth-form input[type="password"],
+.auth-form input[type="text"] {
+  width: 100%;
+  padding: 0.7rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border 0.25s;
+}
+.auth-form input:focus {
+  border-color: var(--color-purple);
+  box-shadow: 0 0 0 3px rgba(120, 90, 200, 0.15);
+}
+
+.auth-msg {
+  font-size: 0.82rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  text-align: center;
+}
+.auth-msg.hidden { display: none; }
+.auth-msg.auth-error {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+.auth-msg.auth-success {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--color-purple);
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+  transition: color 0.2s;
+}
+.btn-link:hover {
+  color: var(--color-cyan);
+  text-decoration: underline;
+}
+
+.sidebar-logout-btn {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: var(--text-muted) !important;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.25s;
+}
+.sidebar-logout-btn:hover {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #f87171 !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
