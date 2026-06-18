@@ -109,6 +109,10 @@ const API = {
 // ==========================================
 function navigateToView(viewId) {
   STATE.activeView = viewId;
+
+  // Close mobile sidebar on navigation
+  document.querySelector('.sidebar')?.classList.remove('mobile-open');
+  document.querySelector('.sidebar-overlay')?.classList.remove('active');
   
   // Update Navbar highlights
   document.querySelectorAll('.nav-item').forEach(item => {
