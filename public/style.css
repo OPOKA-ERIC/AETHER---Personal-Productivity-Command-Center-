@@ -1573,16 +1573,17 @@ textarea:focus, input[type="text"]:focus, input[type="date"]:focus, input[type="
 
 /* Sidebar Overlay */
 .sidebar-overlay {
-  display: none;
   position: fixed;
   inset: 0;
   z-index: 99;
-  background: rgba(7, 5, 15, 0.6);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(7, 5, 15, 0.65);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
 }
 .sidebar-overlay.active {
-  display: block;
+  opacity: 1;
+  pointer-events: auto;
 }
 
 /* ---- 1024px BREAKPOINT (small laptops / tablets landscape) ---- */
@@ -1682,11 +1683,12 @@ textarea:focus, input[type="text"]:focus, input[type="date"]:focus, input[type="
   .sidebar {
     position: fixed;
     top: 0;
-    left: -280px;
+    left: 0;
     width: 260px;
     height: 100vh;
     z-index: 100;
-    transition: left 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     padding: 2rem 1.5rem;
     align-items: flex-start;
     border-right: 1px solid var(--card-border);
@@ -1696,7 +1698,7 @@ textarea:focus, input[type="text"]:focus, input[type="date"]:focus, input[type="
     -webkit-backdrop-filter: none;
   }
   .sidebar.mobile-open {
-    left: 0;
+    transform: translateX(0);
   }
   .sidebar span, .sidebar .brand-name, .sidebar .user-details {
     display: flex;
@@ -1708,15 +1710,19 @@ textarea:focus, input[type="text"]:focus, input[type="date"]:focus, input[type="
   .nav-item {
     justify-content: flex-start;
     padding: 0.85rem 1.2rem;
+    color: var(--text-muted);
+    font-size: 0.95rem;
   }
   .nav-item i {
     margin-right: 1rem;
+    font-size: 1.1rem;
+  }
+  .nav-item.active {
+    background: rgba(139, 92, 246, 0.15);
+    color: var(--text-bright);
   }
 
   /* Show sidebar overlay and hamburger */
-  .sidebar-overlay.active {
-    display: block;
-  }
   .mobile-menu-btn {
     display: flex !important;
   }
