@@ -2,3 +2,7 @@ node_modules/
 .env
 tracker.db
 server_output.txt
+# Mobile
+mobile/node_modules/
+
+# IDE.idea/

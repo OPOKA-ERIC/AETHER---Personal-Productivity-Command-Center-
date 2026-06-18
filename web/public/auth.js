@@ -155,3 +155,11 @@ document.getElementById('reset-form').addEventListener('submit', async (e) => {
 document.getElementById('logout-btn').addEventListener('click', async () => {
   await _supabase.auth.signOut();
 });
+
+document.getElementById('google-login-btn').addEventListener('click', async () => {
+  const { error } = await _supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin }
+  });
+  if (error) showAuthMsg('login-error', error.message, 'auth-error');
+});

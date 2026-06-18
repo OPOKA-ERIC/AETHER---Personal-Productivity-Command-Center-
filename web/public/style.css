@@ -2831,6 +2831,61 @@ canvas {
   text-decoration: underline;
 }
 
+/* OAuth Google Button */
+.btn-oauth {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: var(--border-radius-md);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+  color: var(--text-main);
+  font-family: 'Inter', sans-serif;
+}
+.btn-oauth:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.2);
+  transform: translateY(-1px);
+}
+.btn-oauth i {
+  font-size: 1.15rem;
+}
+.btn-google i {
+  color: #ea4335;
+}
+.btn-oauth:active {
+  transform: translateY(0);
+}
+
+/* OAuth Divider */
+.oauth-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.5rem 0;
+}
+.oauth-divider::before,
+.oauth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255,255,255,0.08);
+}
+.oauth-divider span {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .sidebar-logout-btn {
   background: rgba(255, 255, 255, 0.05) !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
