@@ -1471,6 +1471,16 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // Mobile sidebar: close when tapping outside the sidebar
+  document.addEventListener('click', (e) => {
+    const sidebar = document.querySelector('.sidebar');
+    const toggle = document.getElementById('mobile-menu-toggle');
+    if (!sidebar || !sidebar.classList.contains('mobile-open')) return;
+    if (sidebar.contains(e.target) || toggle?.contains(e.target)) return;
+    sidebar.classList.remove('mobile-open');
+    document.querySelector('.sidebar-overlay')?.classList.remove('active');
+  });
+
   // Alarm mute toggle
   document.getElementById('alarm-volume-toggle').addEventListener('click', function() {
     STATE.isAlarmMuted = !STATE.isAlarmMuted;

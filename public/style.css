@@ -1576,14 +1576,13 @@ textarea:focus, input[type="text"]:focus, input[type="date"]:focus, input[type="
   position: fixed;
   inset: 0;
   z-index: 99;
-  background: rgba(7, 5, 15, 0.65);
+  background: rgba(7, 5, 15, 0.4);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.3s ease;
 }
 .sidebar-overlay.active {
   opacity: 1;
-  pointer-events: auto;
 }
 
 /* ---- 1024px BREAKPOINT (small laptops / tablets landscape) ---- */
