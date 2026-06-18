@@ -2257,7 +2257,6 @@ textarea:focus, input[type="text"]:focus, input[type="date"]:focus, input[type="
   /* Sidebar on small phones */
   .sidebar {
     width: 240px;
-    left: -240px;
     padding: 1.25rem 1rem;
   }
 
