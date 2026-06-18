@@ -638,7 +638,7 @@ function renderAnalyticsPortal() {
       const barHTML = `
         <div class="category-progress-item">
           <div class="category-progress-meta">
-            <span class="category-progress-name">${cat}</span>
+            <span class="category-progress-name"><span class="cat-dot cat-dot-${cat}"></span> ${cat}</span>
             <span class="category-progress-time">${actHr}h done / ${schedHr}h scheduled</span>
           </div>
           <div class="category-progress-track">

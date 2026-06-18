@@ -1231,7 +1231,7 @@ textarea:focus, input[type="text"]:focus, input[type="date"]:focus, input[type="
 
 .analytics-metrics-banner {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
   margin-bottom: 2rem;
 }
@@ -1274,33 +1274,52 @@ textarea:focus, input[type="text"]:focus, input[type="date"]:focus, input[type="
 
 .analytics-charts-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 2rem;
+}
+
+/* Responsive canvas */
+canvas {
+  max-width: 100%;
+  height: auto !important;
 }
 
 /* Category time bars */
 .category-progress-item {
-  margin-bottom: 1.25rem;
+  margin-bottom: 1rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--card-border);
+  border-radius: var(--border-radius-md);
+  padding: 0.85rem 1rem;
+  transition: border-color var(--transition-speed);
 }
 .category-progress-item:last-child {
   margin-bottom: 0;
+}
+.category-progress-item:hover {
+  border-color: var(--card-border-glow);
 }
 .category-progress-meta {
   display: flex;
   justify-content: space-between;
   font-size: 0.8rem;
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.6rem;
 }
 .category-progress-name {
   font-weight: 600;
   text-transform: capitalize;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 .category-progress-time {
   color: var(--text-muted);
+  font-size: 0.75rem;
+  font-family: monospace;
 }
 .category-progress-track {
   width: 100%;
-  height: 8px;
+  height: 6px;
   background: rgba(255, 255, 255, 0.04);
   border-radius: 10px;
   position: relative;
@@ -1576,7 +1595,7 @@ textarea:focus, input[type="text"]:focus, input[type="date"]:focus, input[type="
   position: fixed;
   inset: 0;
   z-index: 99;
-  background: rgba(7, 5, 15, 0.4);
+  background: rgba(7, 5, 15, 0.2);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.3s ease;
@@ -1897,7 +1916,7 @@ textarea:focus, input[type="text"]:focus, input[type="date"]:focus, input[type="
 
   canvas#trendsChart {
     max-width: 100%;
-    height: auto;
+    height: auto !important;
   }
 
   /* Reports */
@@ -2479,11 +2498,23 @@ textarea:focus, input[type="text"]:focus, input[type="date"]:focus, input[type="
   border-radius: 50%;
   flex-shrink: 0;
 }
+.cat-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
 .cat-dot-coding { background: var(--color-cyan); }
 .cat-dot-study { background: var(--color-purple); }
 .cat-dot-exercise { background: var(--color-emerald); }
 .cat-dot-leisure { background: var(--color-amber); }
 .cat-dot-urgent { background: var(--color-rose); }
+.cat-dot-personal { background: #a78bfa; }
+.cat-dot-health { background: #34d399; }
+.cat-dot-reading { background: #fb923c; }
+.cat-dot-meeting { background: #38bdf8; }
+.cat-dot-deep-work { background: #c084fc; }
 
 .ddt-title {
   flex-grow: 1;
