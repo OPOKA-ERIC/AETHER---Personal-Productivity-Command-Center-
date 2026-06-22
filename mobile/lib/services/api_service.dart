@@ -1,13 +1,17 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ApiService {
-  // Change this to your computer's LAN IP for phone testing, or use
-  // 10.0.2.2 for Android emulator, localhost for iOS simulator
-  static const _base = 'http://192.168.1.130:3000/api';
+  static const _base = 'https://aether-personal-productivity-command.onrender.com/api';
 
   Future<Map<String, String>> _headers() async {
-    return {'Content-Type': 'application/json'};
+    final h = <String, String>{'Content-Type': 'application/json'};
+    final session = Supabase.instance.client.auth.currentSession;
+    if (session != null) {
+      h['Authorization'] = 'Bearer ${session.accessToken}';
+    }
+    return h;
   }
 
   Future<List<dynamic>> get(String path) async {
