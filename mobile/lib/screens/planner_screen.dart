@@ -115,7 +115,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
               ),
               const SizedBox(width: 8),
               ElevatedButton.icon(
-                onPressed: () => _showAddTaskModal(context),
+                onPressed: () => _showTaskModal(context),
                 icon: const Icon(Icons.add, size: 16),
                 label: const Text('Schedule Time Block', style: TextStyle(fontSize: 12)),
                 style: ElevatedButton.styleFrom(
@@ -229,9 +229,11 @@ class _PlannerScreenState extends State<PlannerScreen> {
 
   Widget _plannerBlock(dynamic task) {
     final color = AetherColors.categoryColor(task.category);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      child: ClipRRect(
+    return GestureDetector(
+      onTap: () => _showTaskModal(context, existing: task),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 6),
+        child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: Container(
           decoration: BoxDecoration(
@@ -280,6 +282,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
             ],
           ),
         ),
+      ),
       ),
     );
   }
@@ -490,14 +493,18 @@ class _PlannerScreenState extends State<PlannerScreen> {
     ]);
   }
 
-  void _showAddTaskModal(BuildContext context) {
-    final titleCtrl = TextEditingController();
-    final startCtrl = TextEditingController(text: '08:00');
-    final endCtrl = TextEditingController(text: '09:00');
-    String category = 'study';
-    String day = 'Monday';
-    bool alarm = true;
-    String? taskDate;
+  void _showTaskModal(BuildContext context, {Task? existing}) {
+    final titleCtrl = TextEditingController(text: existing?.title ?? '');
+    final startCtrl = TextEditingController(text: existing?.startTime ?? '08:00');
+    final endCtrl = TextEditingController(text: existing?.endTime ?? '09:00');
+    String category = existing?.category ?? 'study';
+    String day = existing != null
+        ? existing.dayOfWeek[0].toUpperCase() + existing.dayOfWeek.substring(1)
+        : 'Monday';
+    bool alarm = existing?.alarmEnabled ?? true;
+    bool completed = existing?.completed ?? false;
+    String? taskDate = existing?.date;
+    final actualCtrl = TextEditingController(text: existing?.actualMinutesSpent.toString() ?? '');
 
     showModalBottomSheet(
       context: context,
@@ -516,7 +523,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Schedule Time Block',
+                Text(existing != null ? 'Modify Time Block' : 'Schedule Time Block',
                     style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w600, color: AetherColors.textBright)),
                 const SizedBox(height: 16),
                 TextField(
@@ -660,31 +667,116 @@ class _PlannerScreenState extends State<PlannerScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      if (titleCtrl.text.trim().isNotEmpty) {
-                        final err = await context.read<TaskService>().createTask(Task(
-                          id: '', userId: '',
-                          title: titleCtrl.text.trim(),
-                          category: category,
-                          dayOfWeek: day.toLowerCase(),
-                          startTime: startCtrl.text.trim(),
-                          endTime: endCtrl.text.trim(),
-                          alarmEnabled: alarm,
-                          date: taskDate ?? _defaultTaskDate(day),
-                          createdAt: DateTime.now().toIso8601String(),
-                        ));
-                        if (err != null && ctx.mounted) {
-                          ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(err)));
-                        }
-                        if (ctx.mounted) Navigator.pop(ctx);
-                      }
-                    },
-                    child: const Text('Confirm Slot'),
+                if (existing != null) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 18, height: 18,
+                        child: Checkbox(
+                          value: completed,
+                          onChanged: (v) => setInnerState(() => completed = v!),
+                          fillColor: WidgetStateProperty.resolveWith((_) => AetherColors.emerald),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(3)),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.check_circle_outline, color: AetherColors.textMuted, size: 14),
+                      const SizedBox(width: 2),
+                      const Text('Completed', style: TextStyle(fontSize: 12, color: AetherColors.textMuted)),
+                      const Spacer(),
+                      SizedBox(
+                        width: 70,
+                        child: TextField(
+                          controller: actualCtrl,
+                          style: const TextStyle(fontSize: 12),
+                          decoration: const InputDecoration(
+                            labelText: 'Min spent',
+                            contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                          ),
+                          keyboardType: TextInputType.number,
+                        ),
+                      ),
+                    ],
                   ),
+                ],
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    if (existing != null)
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            final confirm = await showDialog<bool>(
+                              context: ctx,
+                              builder: (dCtx) => AlertDialog(
+                                title: const Text('Delete task?'),
+                                content: Text('"${existing.title}" will be gone.'),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.pop(dCtx, false), child: const Text('Cancel')),
+                                  TextButton(onPressed: () => Navigator.pop(dCtx, true), child: const Text('Delete', style: TextStyle(color: AetherColors.rose))),
+                                ],
+                              ),
+                            );
+                            if (confirm == true) {
+                              await context.read<TaskService>().deleteTask(existing.id);
+                              if (ctx.mounted) Navigator.pop(ctx);
+                            }
+                          },
+                          icon: const Icon(Icons.delete_outline, size: 16, color: AetherColors.rose),
+                          label: const Text('Delete', style: TextStyle(color: AetherColors.rose, fontSize: 13)),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: AetherColors.rose),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ),
+                    if (existing != null) const SizedBox(width: 12),
+                    Expanded(
+                      child: SizedBox(
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            if (titleCtrl.text.trim().isNotEmpty) {
+                              if (existing != null) {
+                                final err = await context.read<TaskService>().updateTask(existing.id, {
+                                  'title': titleCtrl.text.trim(),
+                                  'category': category,
+                                  'day_of_week': day.toLowerCase(),
+                                  'start_time': startCtrl.text.trim(),
+                                  'end_time': endCtrl.text.trim(),
+                                  'alarm_enabled': alarm,
+                                  'completed': completed,
+                                  'actual_minutes_spent': int.tryParse(actualCtrl.text.trim()) ?? 0,
+                                  'date': taskDate ?? _defaultTaskDate(day),
+                                });
+                                if (err != null && ctx.mounted) {
+                                  ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(err)));
+                                }
+                              } else {
+                                final err = await context.read<TaskService>().createTask(Task(
+                                  id: '', userId: '',
+                                  title: titleCtrl.text.trim(),
+                                  category: category,
+                                  dayOfWeek: day.toLowerCase(),
+                                  startTime: startCtrl.text.trim(),
+                                  endTime: endCtrl.text.trim(),
+                                  alarmEnabled: alarm,
+                                  date: taskDate ?? _defaultTaskDate(day),
+                                  createdAt: DateTime.now().toIso8601String(),
+                                ));
+                                if (err != null && ctx.mounted) {
+                                  ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(err)));
+                                }
+                              }
+                              if (ctx.mounted) Navigator.pop(ctx);
+                            }
+                          },
+                          child: Text(existing != null ? 'Save Changes' : 'Confirm Slot'),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

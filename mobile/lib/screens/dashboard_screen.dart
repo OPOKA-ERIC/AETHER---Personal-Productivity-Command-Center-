@@ -224,6 +224,203 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  void _showEditTaskDialog(BuildContext ctx, Task task) {
+    final titleCtrl = TextEditingController(text: task.title);
+    String category = task.category;
+    bool alarm = task.alarmEnabled;
+    bool completed = task.completed;
+    final actualCtrl = TextEditingController(text: task.actualMinutesSpent.toString());
+
+    showModalBottomSheet(
+      context: ctx,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1A1530),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        final categories = AetherColors.categoryColors.keys.toList();
+        return StatefulBuilder(builder: (ctx, setInnerState) {
+          return Padding(
+            padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Modify Time Block',
+                    style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w600, color: AetherColors.textBright)),
+                const SizedBox(height: 16),
+                TextField(controller: titleCtrl, decoration: const InputDecoration(hintText: 'Task title...')),
+                const SizedBox(height: 10),
+                Autocomplete<String>(
+                  optionsBuilder: (val) {
+                    if (val.text.isEmpty) return categories;
+                    return categories.where((c) => c.toLowerCase().contains(val.text.toLowerCase()));
+                  },
+                  initialValue: TextEditingValue(text: category),
+                  onSelected: (v) => category = v,
+                  fieldViewBuilder: (ctx, ctrl, focusNode, onSubmit) {
+                    ctrl.text = category;
+                    return TextField(
+                      controller: ctrl, focusNode: focusNode,
+                      style: const TextStyle(fontSize: 13, color: AetherColors.textBright),
+                      decoration: InputDecoration(
+                        labelText: 'Category', hintText: 'e.g. coding, study...',
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        suffixIcon: Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: Container(
+                            width: 12, height: 12, margin: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: AetherColors.categoryColor(ctrl.text), shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                      ),
+                      onChanged: (v) => category = v,
+                    );
+                  },
+                  optionsViewBuilder: (ctx, onSelected, options) => Align(
+                    alignment: Alignment.topLeft,
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 4),
+                      constraints: const BoxConstraints(maxHeight: 200, maxWidth: 200),
+                      decoration: BoxDecoration(
+                        color: Color(0xFF0C091A), borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AetherColors.glassBorder),
+                      ),
+                      child: ListView.builder(
+                        padding: EdgeInsets.zero,
+                        itemCount: options.length,
+                        itemBuilder: (ctx, i) {
+                          final cat = options.elementAt(i);
+                          return InkWell(
+                            onTap: () => onSelected(cat),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              child: Row(children: [
+                                Container(width: 8, height: 8, decoration: BoxDecoration(color: AetherColors.categoryColor(cat), shape: BoxShape.circle)),
+                                const SizedBox(width: 8),
+                                Text(cat[0].toUpperCase() + cat.substring(1),
+                                    style: const TextStyle(color: AetherColors.textBright, fontSize: 13)),
+                              ]),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    SizedBox(width: 18, height: 18,
+                      child: Checkbox(
+                        value: alarm,
+                        onChanged: (v) => setInnerState(() => alarm = v!),
+                        fillColor: WidgetStateProperty.resolveWith((_) => AetherColors.rose),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(3)),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.notifications_outlined, color: AetherColors.textMuted, size: 14),
+                    const SizedBox(width: 2),
+                    const Text('Alarm', style: TextStyle(fontSize: 12, color: AetherColors.textMuted)),
+                    const Spacer(),
+                    SizedBox(
+                      width: 70,
+                      child: TextField(
+                        controller: actualCtrl,
+                        style: const TextStyle(fontSize: 12),
+                        decoration: const InputDecoration(
+                          labelText: 'Min spent', contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        ),
+                        keyboardType: TextInputType.number,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    SizedBox(width: 18, height: 18,
+                      child: Checkbox(
+                        value: completed,
+                        onChanged: (v) => setInnerState(() => completed = v!),
+                        fillColor: WidgetStateProperty.resolveWith((_) => AetherColors.emerald),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(3)),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.check_circle_outline, color: AetherColors.textMuted, size: 14),
+                    const SizedBox(width: 2),
+                    const Text('Completed', style: TextStyle(fontSize: 12, color: AetherColors.textMuted)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          final confirm = await showDialog<bool>(
+                            context: ctx,
+                            builder: (dCtx) => AlertDialog(
+                              title: const Text('Delete task?'),
+                              content: Text('"${task.title}" will be gone.'),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.pop(dCtx, false), child: const Text('Cancel')),
+                                TextButton(onPressed: () => Navigator.pop(dCtx, true), child: const Text('Delete', style: TextStyle(color: AetherColors.rose))),
+                              ],
+                            ),
+                          );
+                          if (confirm == true) {
+                            await context.read<TaskService>().deleteTask(task.id);
+                            if (ctx.mounted) Navigator.pop(ctx);
+                          }
+                        },
+                        icon: const Icon(Icons.delete_outline, size: 16, color: AetherColors.rose),
+                        label: const Text('Delete', style: TextStyle(color: AetherColors.rose, fontSize: 13)),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: AetherColors.rose),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: SizedBox(
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            if (titleCtrl.text.trim().isNotEmpty) {
+                              final err = await context.read<TaskService>().updateTask(task.id, {
+                                'title': titleCtrl.text.trim(),
+                                'category': category,
+                                'alarm_enabled': alarm,
+                                'completed': completed,
+                                'actual_minutes_spent': int.tryParse(actualCtrl.text.trim()) ?? 0,
+                              });
+                              if (err != null && ctx.mounted) {
+                                ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(err)));
+                              }
+                              if (ctx.mounted) Navigator.pop(ctx);
+                            }
+                          },
+                          child: const Text('Save Changes'),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        });
+      },
+    );
+  }
+
   Widget _timelineItem(Task task) {
     final color = AetherColors.categoryColor(task.category);
     final sw = _stopwatches[task.id];
@@ -232,10 +429,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final elapsed = sw?.elapsed;
     final elapsedSecs = task.actualMinutesSpent * 60;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 2),
-      child: IntrinsicHeight(
-        child: Row(
+    return GestureDetector(
+      onTap: () => _showEditTaskDialog(context, task),
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 2),
+        child: IntrinsicHeight(
+          child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
@@ -360,6 +559,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
           ),
         ),
+      ),
       );
   }
 
