@@ -27,14 +27,6 @@ class _PlannerScreenState extends State<PlannerScreen> {
 
   String _dateStr(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
-  List<String> _weekDateRange() {
-    final anchor = _anchorDate;
-    final diff = anchor.weekday - 1;
-    final mon = anchor.subtract(Duration(days: diff));
-    final sun = mon.add(const Duration(days: 6));
-    return [_dateStr(mon), _dateStr(sun)];
-  }
-
   String _dateForDay(String dayName) {
     final anchor = _anchorDate;
     final diff = anchor.weekday - 1;
@@ -488,6 +480,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
     String category = 'study';
     String day = 'Monday';
     bool alarm = true;
+    String? taskDate;
 
     showModalBottomSheet(
       context: context,
@@ -534,7 +527,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
                       child: DropdownButtonFormField<String>(
                         initialValue: day,
                         items: days.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
-                        onChanged: (v) => setInnerState(() => day = v!),
+                        onChanged: (v) => setInnerState(() { day = v!; taskDate = null; }),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -546,19 +539,35 @@ class _PlannerScreenState extends State<PlannerScreen> {
                   ],
                 ),
                 const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: const Color(0x0AFFFFFF),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0x1AFFFFFF)),
+                GestureDetector(
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: ctx,
+                      initialDate: DateTime.tryParse(_dateForDay(day)) ?? DateTime.now(),
+                      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                    );
+                    if (picked != null) {
+                      taskDate = _dateStr(picked);
+                      setInnerState(() => day = DateFormat('EEEE').format(picked));
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0x0AFFFFFF),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0x1AFFFFFF)),
+                    ),
+                    child: Row(children: [
+                      const Icon(Icons.calendar_today, color: AetherColors.purple, size: 14),
+                      const SizedBox(width: 8),
+                      Text(taskDate ?? _dateForDay(day),
+                          style: const TextStyle(fontSize: 13, color: AetherColors.textMuted, fontFamily: 'monospace')),
+                      const Spacer(),
+                      const Icon(Icons.edit, color: AetherColors.textMuted, size: 14),
+                    ]),
                   ),
-                  child: Row(children: [
-                    const Icon(Icons.calendar_today, color: AetherColors.purple, size: 14),
-                    const SizedBox(width: 8),
-                    Text(_dateForDay(day),
-                        style: const TextStyle(fontSize: 13, color: AetherColors.textMuted, fontFamily: 'monospace')),
-                  ]),
                 ),
                 const SizedBox(height: 10),
                 Row(
@@ -598,7 +607,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
                           startTime: startCtrl.text.trim(),
                           endTime: endCtrl.text.trim(),
                           alarmEnabled: alarm,
-                          date: _dateForDay(day),
+                          date: taskDate ?? _dateForDay(day),
                           createdAt: DateTime.now().toIso8601String(),
                         ));
                         Navigator.pop(ctx);
