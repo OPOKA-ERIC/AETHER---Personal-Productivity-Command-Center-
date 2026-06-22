@@ -117,8 +117,20 @@ function apiHeaders() {
   return h;
 }
 
+// Use the Render API as the backend when the frontend is served from a different origin (Vercel)
+const RENDER_ORIGIN = 'https://aether-personal-productivity-command.onrender.com';
+
+function apiBase() {
+  // If we're on Render or localhost, use relative URLs (same origin)
+  const host = window.location.hostname;
+  if (host === 'localhost' || host === '127.0.0.1' || host.endsWith('.onrender.com')) {
+    return '';
+  }
+  return RENDER_ORIGIN;
+}
+
 function apiFetch(url, opts = {}) {
-  return fetch(url, { ...opts, headers: { ...apiHeaders(), ...opts.headers } }).then(r => r.json());
+  return fetch(apiBase() + url, { ...opts, headers: { ...apiHeaders(), ...opts.headers } }).then(r => r.json());
 }
 
 const API = {
