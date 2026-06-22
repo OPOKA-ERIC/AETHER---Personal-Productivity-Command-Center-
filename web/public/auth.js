@@ -49,6 +49,12 @@ async function initAuth() {
     return;
   }
 
+  // If user logged out, show the auth overlay and wait
+  if (localStorage.getItem('aether_logged_out')) {
+    document.getElementById('auth-overlay').classList.add('active');
+    return;
+  }
+
   // Single-user mode (SQLite) — skip auth
   STATE.token = 'local-mode';
   STATE.user = { id: 1, email: 'local@aether.app', user_metadata: { display_name: 'You' } };
@@ -153,6 +159,7 @@ document.getElementById('logout-btn').addEventListener('click', async () => {
   }
   STATE.token = null;
   STATE.user = null;
+  localStorage.setItem('aether_logged_out', '1');
   location.reload();
 });
 
@@ -162,4 +169,13 @@ document.getElementById('google-login-btn').addEventListener('click', async () =
     options: { redirectTo: window.location.origin }
   });
   if (error) showAuthMsg('login-error', error.message, 'auth-error');
+});
+
+document.getElementById('guest-login-btn').addEventListener('click', () => {
+  localStorage.removeItem('aether_logged_out');
+  STATE.token = 'local-mode';
+  STATE.user = { id: 1, email: 'local@aether.app', user_metadata: { display_name: 'You' } };
+  updateSidebarUser(STATE.user);
+  document.getElementById('auth-overlay').classList.remove('active');
+  bootApp();
 });
