@@ -686,9 +686,9 @@ class _QuickAddFormState extends State<_QuickAddForm> {
         SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
-            onPressed: () {
+            onPressed: () async {
               if (_titleCtrl.text.trim().isNotEmpty) {
-                context.read<TaskService>().createTask(Task(
+                final err = await context.read<TaskService>().createTask(Task(
                   id: '', userId: '',
                   title: _titleCtrl.text.trim(),
                   category: _category,
@@ -699,6 +699,9 @@ class _QuickAddFormState extends State<_QuickAddForm> {
                   milestoneId: _milestoneId.isNotEmpty ? _milestoneId : null,
                   createdAt: DateTime.now().toIso8601String(),
                 ));
+                if (err != null && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+                }
                 _titleCtrl.clear();
                 widget.onAdded();
               }

@@ -664,9 +664,9 @@ class _PlannerScreenState extends State<PlannerScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
                       if (titleCtrl.text.trim().isNotEmpty) {
-                        context.read<TaskService>().createTask(Task(
+                        final err = await context.read<TaskService>().createTask(Task(
                           id: '', userId: '',
                           title: titleCtrl.text.trim(),
                           category: category,
@@ -677,7 +677,10 @@ class _PlannerScreenState extends State<PlannerScreen> {
                           date: taskDate ?? _defaultTaskDate(day),
                           createdAt: DateTime.now().toIso8601String(),
                         ));
-                        Navigator.pop(ctx);
+                        if (err != null && ctx.mounted) {
+                          ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(err)));
+                        }
+                        if (ctx.mounted) Navigator.pop(ctx);
                       }
                     },
                     child: const Text('Confirm Slot'),

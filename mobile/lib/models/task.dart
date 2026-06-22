@@ -30,20 +30,27 @@ class Task {
   });
 
   factory Task.fromJson(Map<String, dynamic> json) {
+    bool _toBool(dynamic v) {
+      if (v is bool) return v;
+      if (v is int) return v != 0;
+      return false;
+    }
     return Task(
-      id: json['id'] ?? '',
-      userId: json['user_id'] ?? '',
-      title: json['title'] ?? '',
-      category: json['category'] ?? 'personal',
-      dayOfWeek: json['day_of_week'] ?? '',
-      startTime: json['start_time'] ?? '',
-      endTime: json['end_time'] ?? '',
-      milestoneId: json['milestone_id'],
-      alarmEnabled: json['alarm_enabled'] ?? true,
-      actualMinutesSpent: json['actual_minutes_spent'] ?? 0,
-      completed: json['completed'] ?? false,
-      date: json['date'],
-      createdAt: json['created_at'] ?? '',
+      id: json['id']?.toString() ?? '',
+      userId: json['user_id']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
+      category: json['category']?.toString() ?? 'personal',
+      dayOfWeek: json['day_of_week']?.toString() ?? '',
+      startTime: json['start_time']?.toString() ?? '',
+      endTime: json['end_time']?.toString() ?? '',
+      milestoneId: json['milestone_id']?.toString(),
+      alarmEnabled: _toBool(json['alarm_enabled']),
+      actualMinutesSpent: (json['actual_minutes_spent'] ?? 0) is int
+          ? json['actual_minutes_spent'] as int
+          : int.tryParse(json['actual_minutes_spent']?.toString() ?? '') ?? 0,
+      completed: _toBool(json['completed']),
+      date: json['date']?.toString(),
+      createdAt: json['created_at']?.toString() ?? '',
     );
   }
 
