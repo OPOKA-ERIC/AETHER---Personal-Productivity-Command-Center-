@@ -6,6 +6,7 @@ import 'services/project_service.dart';
 import 'services/reflection_service.dart';
 import 'services/analytics_service.dart';
 import 'theme/aether_theme.dart';
+import 'screens/auth_screen.dart';
 import 'screens/home_shell.dart';
 
 void main() async {
@@ -31,6 +32,9 @@ class AetherApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: AetherTheme.dark,
         home: const AuthGate(),
+        routes: {
+          '/home': (ctx) => const HomeShell(),
+        },
       ),
     );
   }
@@ -60,6 +64,10 @@ class _AuthGateState extends State<AuthGate> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthService>();
+    if (!auth.isSignedIn) {
+      return const AuthScreen();
+    }
     return const HomeShell();
   }
 }

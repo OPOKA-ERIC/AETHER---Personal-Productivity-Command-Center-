@@ -45,6 +45,11 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     super.dispose();
   }
 
+  void _enterGuestMode() {
+    context.read<AuthService>().enterGuestMode();
+    Navigator.of(context).pushReplacementNamed('/home');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -55,6 +60,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              // Logo
               Container(
                 width: 56, height: 56,
                 decoration: BoxDecoration(
@@ -65,6 +71,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                 child: const Icon(Icons.auto_awesome, color: Colors.white, size: 24),
               ),
               const SizedBox(height: 16),
+              // Brand
               ShaderMask(
                 shaderCallback: (b) => const LinearGradient(
                   colors: [Colors.white, Color(0xFFC084FC)],
@@ -79,6 +86,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                   style: TextStyle(fontSize: 13, color: AetherColors.textMuted)),
               const SizedBox(height: 40),
 
+              // Auth Card
               Container(
                 decoration: BoxDecoration(
                   color: AetherColors.glass,
@@ -105,7 +113,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                       ],
                     ),
                     SizedBox(
-                      height: 320,
+                      height: 360,
                       child: TabBarView(
                         controller: _tabCtrl,
                         children: [
@@ -130,12 +138,52 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Google OAuth button
+          SizedBox(
+            height: 44,
+            child: OutlinedButton.icon(
+              onPressed: () {},
+              icon: Image.network(
+                'https://www.google.com/favicon.ico',
+                height: 18, width: 18,
+                errorBuilder: (_, __, ___) => const Icon(Icons.g_mobiledata, size: 22),
+              ),
+              label: Text('Continue with Google', style: TextStyle(fontSize: 13, color: AetherColors.textMuted)),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: AetherColors.glassBorder),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+          ),
+
+          // Divider
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            child: Row(
+              children: [
+                const Expanded(child: Divider(color: AetherColors.glassBorder)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text('or sign in with email',
+                      style: TextStyle(fontSize: 11, color: AetherColors.textMuted)),
+                ),
+                const Expanded(child: Divider(color: AetherColors.glassBorder)),
+              ],
+            ),
+          ),
+
+          // Email
           TextField(
             controller: _loginEmailCtrl,
-            decoration: const InputDecoration(hintText: 'Email', contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
+            decoration: const InputDecoration(
+              hintText: 'Email',
+              contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            ),
             keyboardType: TextInputType.emailAddress,
           ),
           const SizedBox(height: 12),
+
+          // Password
           TextField(
             controller: _loginPassCtrl,
             decoration: InputDecoration(
@@ -148,11 +196,25 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
             ),
             obscureText: _obscureLoginPass,
           ),
+
+          // Forgot password
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: () {},
+              child: Text('Forgot password?',
+                  style: TextStyle(fontSize: 12, color: AetherColors.purple)),
+            ),
+          ),
+
           if (_loginError != null) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             Text(_loginError!, style: const TextStyle(color: AetherColors.rose, fontSize: 12)),
           ],
-          const SizedBox(height: 16),
+
+          const SizedBox(height: 4),
+
+          // Sign In button
           SizedBox(
             height: 44,
             child: ElevatedButton(
@@ -161,6 +223,28 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
               child: _loginLoading
                   ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                   : const Text('Sign In'),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Continue as Guest
+          SizedBox(
+            height: 44,
+            child: OutlinedButton(
+              onPressed: _enterGuestMode,
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: AetherColors.glassBorder),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.person_outline, size: 16, color: AetherColors.textMuted),
+                  const SizedBox(width: 6),
+                  Text('Continue as Guest', style: TextStyle(fontSize: 13, color: AetherColors.textMuted)),
+                ],
+              ),
             ),
           ),
         ],
@@ -177,12 +261,18 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
           children: [
             TextField(
               controller: _regNameCtrl,
-              decoration: const InputDecoration(hintText: 'Display Name', contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
+              decoration: const InputDecoration(
+                hintText: 'Display Name',
+                contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              ),
             ),
             const SizedBox(height: 10),
             TextField(
               controller: _regEmailCtrl,
-              decoration: const InputDecoration(hintText: 'Email', contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
+              decoration: const InputDecoration(
+                hintText: 'Email',
+                contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              ),
               keyboardType: TextInputType.emailAddress,
             ),
             const SizedBox(height: 10),
