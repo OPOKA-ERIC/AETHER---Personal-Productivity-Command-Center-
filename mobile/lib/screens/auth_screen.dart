@@ -135,7 +135,8 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
   Widget _buildLoginForm() {
     return Padding(
       padding: const EdgeInsets.all(20),
-      child: Column(
+      child: SingleChildScrollView(
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Google OAuth button
@@ -247,9 +248,10 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
               ),
             ),
           ),
-        ],
-      ),
-    );
+          ],
+        ),
+        ),
+      );
   }
 
   Widget _buildRegisterForm() {
