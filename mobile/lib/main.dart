@@ -5,12 +5,14 @@ import 'services/task_service.dart';
 import 'services/project_service.dart';
 import 'services/reflection_service.dart';
 import 'services/analytics_service.dart';
+import 'services/supabase_service.dart';
 import 'theme/aether_theme.dart';
 import 'screens/auth_screen.dart';
 import 'screens/home_shell.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SupabaseService.init();
   runApp(const AetherApp());
 }
 
