@@ -38,6 +38,19 @@ class _PlannerScreenState extends State<PlannerScreen> {
     return _dateStr(d);
   }
 
+  String _defaultTaskDate(String dayName) {
+    if (_weekOffset != 0) return _dateForDay(dayName);
+    final days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    final today = DateTime.now();
+    final todayIdx = today.weekday % 7;
+    final targetIdx = days.indexOf(dayName);
+    if (targetIdx == -1) return _dateForDay(dayName);
+    var diff = targetIdx - todayIdx;
+    if (diff < 0) diff += 7;
+    final d = today.add(Duration(days: diff));
+    return _dateStr(d);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -543,7 +556,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
                   onTap: () async {
                     final picked = await showDatePicker(
                       context: ctx,
-                      initialDate: DateTime.tryParse(_dateForDay(day)) ?? DateTime.now(),
+                      initialDate: DateTime.tryParse(_defaultTaskDate(day)) ?? DateTime.now(),
                       firstDate: DateTime.now().subtract(const Duration(days: 365)),
                       lastDate: DateTime.now().add(const Duration(days: 365)),
                     );
@@ -562,7 +575,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
                     child: Row(children: [
                       const Icon(Icons.calendar_today, color: AetherColors.purple, size: 14),
                       const SizedBox(width: 8),
-                      Text(taskDate ?? _dateForDay(day),
+                      Text(taskDate ?? _defaultTaskDate(day),
                           style: const TextStyle(fontSize: 13, color: AetherColors.textMuted, fontFamily: 'monospace')),
                       const Spacer(),
                       const Icon(Icons.edit, color: AetherColors.textMuted, size: 14),
@@ -607,7 +620,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
                           startTime: startCtrl.text.trim(),
                           endTime: endCtrl.text.trim(),
                           alarmEnabled: alarm,
-                          date: taskDate ?? _dateForDay(day),
+                          date: taskDate ?? _defaultTaskDate(day),
                           createdAt: DateTime.now().toIso8601String(),
                         ));
                         Navigator.pop(ctx);

@@ -384,6 +384,22 @@ function getDateForDayInWeek(dayName) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
+function getDefaultTaskDate(dayName) {
+  // If viewing a future/past week, use that week's date
+  if (STATE.weekOffset !== 0) return getDateForDayInWeek(dayName);
+  // Current week: if the day has already passed, default to next occurrence
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const today = new Date();
+  const todayIdx = today.getDay();
+  const targetIdx = days.indexOf(dayName);
+  if (targetIdx === -1) return getDateForDayInWeek(dayName);
+  let diff = targetIdx - todayIdx;
+  if (diff < 0) diff += 7; // already passed → next week
+  const d = new Date(today);
+  d.setDate(today.getDate() + diff);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
 function renderWeeklyPlanner() {
   const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const fmt = (d) => `${d.getDate()} ${months[d.getMonth()].slice(0,3)}`;
@@ -1349,7 +1365,7 @@ window.addEventListener('DOMContentLoaded', () => {
       completed: document.getElementById('task-completed').checked,
       alarm_enabled: document.getElementById('task-alarm').checked,
       actual_minutes_spent: parseInt(document.getElementById('task-actual-time').value) || 0,
-      date: dateInput.value || getDateForDayInWeek(dayOfWeek)
+      date: dateInput.value || getDefaultTaskDate(dayOfWeek)
     };
     try {
       if (id) await API.updateTask(id, data);
@@ -1380,7 +1396,7 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('task-form').reset();
     document.getElementById('task-id').value = '';
     document.getElementById('task-day').value = 'Monday';
-    document.getElementById('task-date').value = getDateForDayInWeek('Monday');
+    document.getElementById('task-date').value = getDefaultTaskDate('Monday');
     document.getElementById('task-alarm').checked = true;
     document.getElementById('delete-task-btn').classList.add('hidden');
     document.getElementById('task-complete-row').classList.add('hidden');
@@ -1401,7 +1417,7 @@ window.addEventListener('DOMContentLoaded', () => {
         end_time: document.getElementById('quick-task-end').value,
         milestone_id: document.getElementById('quick-task-milestone').value || null,
         alarm_enabled: document.getElementById('quick-task-alarm').checked,
-        date: qDateInput.value || getDateForDayInWeek(qDay)
+        date: qDateInput.value || getDefaultTaskDate(qDay)
       });
       document.getElementById('quick-task-title').value = '';
       document.getElementById('quick-task-category').value = '';
@@ -1423,6 +1439,14 @@ window.addEventListener('DOMContentLoaded', () => {
     }));
   }
   document.getElementById('quick-task-title').addEventListener('focus', populateQuickMilestone);
+
+  // Sync date field when day selector changes — uses smart default
+  document.getElementById('task-day').addEventListener('change', function() {
+    document.getElementById('task-date').value = getDefaultTaskDate(this.value);
+  });
+  document.getElementById('quick-task-day').addEventListener('change', function() {
+    document.getElementById('quick-task-date').value = getDefaultTaskDate(this.value);
+  });
 
   // Project form
   document.getElementById('new-project-btn').addEventListener('click', () => {
