@@ -10,6 +10,7 @@ class Task {
   final bool alarmEnabled;
   final int actualMinutesSpent;
   final bool completed;
+  final String? date;
   final String createdAt;
 
   Task({
@@ -24,6 +25,7 @@ class Task {
     this.alarmEnabled = true,
     this.actualMinutesSpent = 0,
     this.completed = false,
+    this.date,
     required this.createdAt,
   });
 
@@ -40,6 +42,7 @@ class Task {
       alarmEnabled: json['alarm_enabled'] ?? true,
       actualMinutesSpent: json['actual_minutes_spent'] ?? 0,
       completed: json['completed'] ?? false,
+      date: json['date'],
       createdAt: json['created_at'] ?? '',
     );
   }
@@ -54,5 +57,6 @@ class Task {
     'alarm_enabled': alarmEnabled,
     'actual_minutes_spent': actualMinutesSpent,
     'completed': completed,
+    'date': date,
   };
 }

@@ -25,6 +25,27 @@ class _PlannerScreenState extends State<PlannerScreen> {
     return today.add(Duration(days: _weekOffset * 7));
   }
 
+  String _dateStr(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  List<String> _weekDateRange() {
+    final anchor = _anchorDate;
+    final diff = anchor.weekday - 1;
+    final mon = anchor.subtract(Duration(days: diff));
+    final sun = mon.add(const Duration(days: 6));
+    return [_dateStr(mon), _dateStr(sun)];
+  }
+
+  String _dateForDay(String dayName) {
+    final anchor = _anchorDate;
+    final diff = anchor.weekday - 1;
+    final mon = anchor.subtract(Duration(days: diff));
+    final days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    final idx = days.indexOf(dayName);
+    if (idx == -1) return '';
+    final d = mon.add(Duration(days: idx));
+    return _dateStr(d);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -107,7 +128,10 @@ class _PlannerScreenState extends State<PlannerScreen> {
             child: Row(
               children: [
                 GestureDetector(
-                  onTap: () => setState(() => _weekOffset--),
+                  onTap: () {
+                    setState(() => _weekOffset--);
+                    context.read<TaskService>().fetchTasks();
+                  },
                   child: const Icon(Icons.chevron_left, color: AetherColors.textMuted, size: 20),
                 ),
                 const SizedBox(width: 6),
@@ -120,7 +144,10 @@ class _PlannerScreenState extends State<PlannerScreen> {
                     style: const TextStyle(fontSize: 12, color: AetherColors.textMuted)),
                 const SizedBox(width: 6),
                 GestureDetector(
-                  onTap: () => setState(() => _weekOffset++),
+                  onTap: () {
+                    setState(() => _weekOffset++);
+                    context.read<TaskService>().fetchTasks();
+                  },
                   child: const Icon(Icons.chevron_right, color: AetherColors.textMuted, size: 20),
                 ),
               ],
@@ -133,7 +160,11 @@ class _PlannerScreenState extends State<PlannerScreen> {
             child: ListView(
               scrollDirection: Axis.horizontal,
               children: days.map((day) {
-                final dayTasks = ts.tasksForDay(day);
+                final dayDate = _dateForDay(day);
+                final dayTasks = ts.tasks.where((t) {
+                  if (t.date != null && t.date!.isNotEmpty) return t.date == dayDate;
+                  return t.dayOfWeek.toLowerCase() == day.toLowerCase() && _weekOffset == 0;
+                }).toList()..sort((a, b) => a.startTime.compareTo(b.startTime));
                 return Container(
                   width: 180,
                   margin: const EdgeInsets.only(right: 8),
@@ -255,8 +286,8 @@ class _PlannerScreenState extends State<PlannerScreen> {
     final reflections = context.watch<ReflectionService>().reflections;
     final reflectionDates = reflections.map((r) => r.date).toSet();
     final taskDates = ts.tasks
-        .where((t) => t.createdAt.isNotEmpty)
-        .map((t) => t.createdAt.substring(0, 10))
+        .where((t) => t.date != null && t.date!.isNotEmpty)
+        .map((t) => t.date!)
         .toSet();
 
     return GlassCard(
@@ -360,7 +391,10 @@ class _PlannerScreenState extends State<PlannerScreen> {
   void _showDayDetail(String dateStr, int day, TaskService ts) {
     final ref = context.read<ReflectionService>().reflections.where((r) => r.date == dateStr).firstOrNull;
     final dayOfWeek = DateFormat('EEEE').format(DateTime(_calendarDate.year, _calendarDate.month, day));
-    final dayTasks = ts.tasks.where((t) => t.dayOfWeek.toLowerCase() == dayOfWeek.toLowerCase()).toList();
+    final dayTasks = ts.tasks.where((t) {
+      if (t.date != null && t.date!.isNotEmpty) return t.date == dateStr;
+      return t.dayOfWeek.toLowerCase() == dayOfWeek.toLowerCase();
+    }).toList();
 
     showDialog(
       context: context,
@@ -549,6 +583,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
                           startTime: startCtrl.text.trim(),
                           endTime: endCtrl.text.trim(),
                           alarmEnabled: alarm,
+                          date: _dateForDay(day),
                           createdAt: DateTime.now().toIso8601String(),
                         ));
                         Navigator.pop(ctx);

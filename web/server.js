@@ -53,8 +53,10 @@ if (!USE_SUPABASE) {
         alarm_enabled INTEGER DEFAULT 1,
         actual_minutes_spent INTEGER DEFAULT 0,
         completed INTEGER DEFAULT 0,
+        date TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )`);
+      d.run(`ALTER TABLE tasks ADD COLUMN date TEXT`, () => {});
       d.run(`CREATE TABLE IF NOT EXISTS reflections (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         date TEXT NOT NULL UNIQUE,
@@ -181,7 +183,7 @@ app.get('/api/tasks', async (req, res) => {
 });
 
 app.post('/api/tasks', async (req, res) => {
-  const { title, category, day_of_week, start_time, end_time, milestone_id, alarm_enabled, completed, actual_minutes_spent } = req.body;
+  const { title, category, day_of_week, start_time, end_time, milestone_id, alarm_enabled, completed, actual_minutes_spent, date } = req.body;
   if (!title || !category || !day_of_week || !start_time || !end_time)
     return res.status(400).json({ error: 'Please provide all required task fields.' });
   try {
@@ -192,15 +194,16 @@ app.post('/api/tasks', async (req, res) => {
         milestone_id: milestone_id || null,
         alarm_enabled: alarm_enabled !== undefined ? !!alarm_enabled : true,
         completed: !!completed,
-        actual_minutes_spent: actual_minutes_spent || 0
+        actual_minutes_spent: actual_minutes_spent || 0,
+        date: date || null
       };
       const { data: inserted, error } = await supabase.from('tasks').insert(payload).select();
       if (error) throw error;
       data = normalizeTask(inserted[0]);
     } else {
       const result = await db.run(
-        'INSERT INTO tasks (title, category, day_of_week, start_time, end_time, milestone_id, alarm_enabled, completed, actual_minutes_spent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [title, category, day_of_week, start_time, end_time, milestone_id || null, alarm_enabled !== undefined ? (alarm_enabled ? 1 : 0) : 1, completed ? 1 : 0, actual_minutes_spent || 0]
+        'INSERT INTO tasks (title, category, day_of_week, start_time, end_time, milestone_id, alarm_enabled, completed, actual_minutes_spent, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [title, category, day_of_week, start_time, end_time, milestone_id || null, alarm_enabled !== undefined ? (alarm_enabled ? 1 : 0) : 1, completed ? 1 : 0, actual_minutes_spent || 0, date || null]
       );
       data = await db.get('SELECT * FROM tasks WHERE id = ?', [result.lastID]);
     }
@@ -214,7 +217,7 @@ app.put('/api/tasks/:id', async (req, res) => {
   try {
     let data;
     if (USE_SUPABASE) {
-      const allowed = ['title', 'category', 'day_of_week', 'start_time', 'end_time', 'milestone_id', 'alarm_enabled', 'completed', 'actual_minutes_spent'];
+      const allowed = ['title', 'category', 'day_of_week', 'start_time', 'end_time', 'milestone_id', 'alarm_enabled', 'completed', 'actual_minutes_spent', 'date'];
       const updates = {};
       allowed.forEach(f => {
         if (req.body[f] !== undefined) {
@@ -227,7 +230,7 @@ app.put('/api/tasks/:id', async (req, res) => {
     } else {
       const fields = [];
       const values = [];
-      const allowed = ['title', 'category', 'day_of_week', 'start_time', 'end_time', 'milestone_id', 'alarm_enabled', 'completed', 'actual_minutes_spent'];
+      const allowed = ['title', 'category', 'day_of_week', 'start_time', 'end_time', 'milestone_id', 'alarm_enabled', 'completed', 'actual_minutes_spent', 'date'];
       allowed.forEach(f => {
         if (req.body[f] !== undefined) {
           fields.push(f + ' = ?');

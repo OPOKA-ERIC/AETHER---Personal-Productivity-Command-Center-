@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS public.tasks (
   alarm_enabled BOOLEAN DEFAULT TRUE,
   actual_minutes_spent INTEGER DEFAULT 0,
   completed BOOLEAN DEFAULT FALSE,
+  date TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

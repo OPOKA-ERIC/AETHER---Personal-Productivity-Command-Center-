@@ -14,7 +14,9 @@ const STATE = {
   taskTimers: {},
   token: null,
   user: null,
-  weekOffset: 0
+  weekOffset: 0,
+  weekStart: null,
+  weekEnd: null
 };
 
 // Dynamic Category Color Engine
@@ -134,7 +136,7 @@ function apiFetch(url, opts = {}) {
 }
 
 const API = {
-  fetchTasks: () => apiFetch('/api/tasks'),
+  fetchTasks: (params = '') => apiFetch(`/api/tasks${params}`),
   saveTask: (d) => apiFetch('/api/tasks', { method: 'POST', body: JSON.stringify(d) }),
   updateTask: (id, d) => apiFetch(`/api/tasks/${id}`, { method: 'PUT', body: JSON.stringify(d) }),
   deleteTask: (id) => apiFetch(`/api/tasks/${id}`, { method: 'DELETE' }),
@@ -214,6 +216,9 @@ async function refreshViewData(viewId) {
       STATE.coachingData = await API.fetchAnalytics();
       renderDashboard();
     } else if (viewId === 'planner') {
+      const { weekStart, weekEnd } = getWeekRange();
+      STATE.weekStart = weekStart;
+      STATE.weekEnd = weekEnd;
       STATE.tasks = await API.fetchTasks();
       updateCategoryDatalists();
       STATE.projects = await API.fetchProjects();
@@ -355,21 +360,35 @@ function getWeekOfMonth(date) {
   return Math.ceil((date.getDate() + firstDay) / 7);
 }
 
-function renderWeeklyPlanner() {
-  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  const fmt = (d) => `${d.getDate()} ${months[d.getMonth()].slice(0,3)}`;
-
-  // Compute the Monday that starts the week view based on weekOffset
+function getWeekRange() {
   const today = new Date();
   const offsetDate = new Date(today);
   offsetDate.setDate(today.getDate() + STATE.weekOffset * 7);
-
-  const day = offsetDate.getDay(); // 0=Sun
+  const day = offsetDate.getDay();
   const diffToMon = (day === 0) ? -6 : 1 - day;
   const monday = new Date(offsetDate);
   monday.setDate(offsetDate.getDate() + diffToMon);
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
+  const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  return { weekStart: fmt(monday), weekEnd: fmt(sunday), monday, sunday };
+}
+
+function getDateForDayInWeek(dayName) {
+  const { monday } = getWeekRange();
+  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const idx = days.indexOf(dayName);
+  if (idx === -1) return null;
+  const d = new Date(monday);
+  d.setDate(monday.getDate() + idx);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function renderWeeklyPlanner() {
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const fmt = (d) => `${d.getDate()} ${months[d.getMonth()].slice(0,3)}`;
+
+  const { monday, sunday } = getWeekRange();
 
   // Week banner: week label based on the Monday anchor
   const weekNum = getWeekOfMonth(monday);
@@ -381,8 +400,11 @@ function renderWeeklyPlanner() {
     const list = document.getElementById(`list-${day}`);
     list.innerHTML = '';
     
-    const dayTasks = STATE.tasks.filter(t => t.day_of_week === day)
-                                 .sort((a, b) => a.start_time.localeCompare(b.start_time));
+    const dayDate = getDateForDayInWeek(day);
+    const dayTasks = STATE.tasks.filter(t => {
+      if (t.date) return t.date === dayDate;
+      return t.day_of_week === day && STATE.weekOffset === 0;
+    }).sort((a, b) => a.start_time.localeCompare(b.start_time));
     
     // Update count indicator badge
     const header = list.parentElement.querySelector('.day-task-count');
@@ -430,11 +452,11 @@ function renderCalendar() {
   // Build a map of dates that have reflections
   const reflectionDates = new Set(STATE.reflections.map(r => r.date));
 
-  // Build a map of dates that have tasks (by created_at date)
+  // Build a map of dates that have tasks (by date field)
   const taskDates = new Set(
     STATE.tasks
-      .filter(t => t.created_at)
-      .map(t => t.created_at.slice(0, 10))
+      .filter(t => t.date)
+      .map(t => t.date)
   );
 
   const grid = document.getElementById('calendar-grid');
@@ -1313,16 +1335,18 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('task-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = document.getElementById('task-id').value;
+    const dayOfWeek = document.getElementById('task-day').value;
     const data = {
       title: document.getElementById('task-title').value,
       category: document.getElementById('task-category').value,
-      day_of_week: document.getElementById('task-day').value,
+      day_of_week: dayOfWeek,
       start_time: document.getElementById('task-start').value,
       end_time: document.getElementById('task-end').value,
       milestone_id: document.getElementById('task-milestone').value || null,
       completed: document.getElementById('task-completed').checked,
       alarm_enabled: document.getElementById('task-alarm').checked,
-      actual_minutes_spent: parseInt(document.getElementById('task-actual-time').value) || 0
+      actual_minutes_spent: parseInt(document.getElementById('task-actual-time').value) || 0,
+      date: getDateForDayInWeek(dayOfWeek)
     };
     try {
       if (id) await API.updateTask(id, data);
@@ -1363,14 +1387,16 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('quick-add-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     try {
+      const qDay = document.getElementById('quick-task-day').value;
       await API.saveTask({
         title: document.getElementById('quick-task-title').value,
         category: document.getElementById('quick-task-category').value || 'urgent',
-        day_of_week: document.getElementById('quick-task-day').value,
+        day_of_week: qDay,
         start_time: document.getElementById('quick-task-start').value,
         end_time: document.getElementById('quick-task-end').value,
         milestone_id: document.getElementById('quick-task-milestone').value || null,
-        alarm_enabled: document.getElementById('quick-task-alarm').checked
+        alarm_enabled: document.getElementById('quick-task-alarm').checked,
+        date: getDateForDayInWeek(qDay)
       });
       document.getElementById('quick-task-title').value = '';
       document.getElementById('quick-task-category').value = '';
@@ -1530,12 +1556,14 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   // Week nav
-  document.getElementById('week-prev').addEventListener('click', () => {
+  document.getElementById('week-prev').addEventListener('click', async () => {
     STATE.weekOffset--;
+    STATE.tasks = await API.fetchTasks();
     renderWeeklyPlanner();
   });
-  document.getElementById('week-next').addEventListener('click', () => {
+  document.getElementById('week-next').addEventListener('click', async () => {
     STATE.weekOffset++;
+    STATE.tasks = await API.fetchTasks();
     renderWeeklyPlanner();
   });
 
