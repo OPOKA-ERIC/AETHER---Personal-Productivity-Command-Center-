@@ -1424,14 +1424,6 @@ window.addEventListener('DOMContentLoaded', () => {
   }
   document.getElementById('quick-task-title').addEventListener('focus', populateQuickMilestone);
 
-  // Sync date field when day selector changes
-  document.getElementById('task-day').addEventListener('change', function() {
-    document.getElementById('task-date').value = getDateForDayInWeek(this.value);
-  });
-  document.getElementById('quick-task-day').addEventListener('change', function() {
-    document.getElementById('quick-task-date').value = getDateForDayInWeek(this.value);
-  });
-
   // Project form
   document.getElementById('new-project-btn').addEventListener('click', () => {
     document.getElementById('project-form').reset();
