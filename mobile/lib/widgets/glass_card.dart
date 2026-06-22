@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../theme/aether_theme.dart';
 
@@ -6,41 +5,21 @@ class GlassCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? padding;
   final EdgeInsetsGeometry? margin;
-  final double? height;
-  final double? width;
-  final BorderRadiusGeometry? borderRadius;
 
-  const GlassCard({
-    super.key,
-    required this.child,
-    this.padding,
-    this.margin,
-    this.height,
-    this.width,
-    this.borderRadius,
-  });
+  const GlassCard({super.key, required this.child, this.padding, this.margin});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: height,
-      width: width,
+      width: double.infinity,
       margin: margin,
+      padding: padding ?? const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AetherColors.glass,
-        borderRadius: borderRadius ?? BorderRadius.circular(16),
         border: Border.all(color: AetherColors.glassBorder),
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: ClipRRect(
-        borderRadius: borderRadius ?? BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-          child: Padding(
-            padding: padding ?? const EdgeInsets.all(16),
-            child: child,
-          ),
-        ),
-      ),
+      child: child,
     );
   }
 }

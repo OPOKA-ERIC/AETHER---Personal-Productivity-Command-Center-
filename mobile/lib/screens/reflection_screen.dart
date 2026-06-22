@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../models/reflection.dart';
 import '../services/reflection_service.dart';
+import '../models/reflection.dart';
 import '../theme/aether_theme.dart';
 import '../widgets/glass_card.dart';
 
@@ -15,24 +15,42 @@ class ReflectionScreen extends StatefulWidget {
 }
 
 class _ReflectionScreenState extends State<ReflectionScreen> {
-  DateTime _selectedDate = DateTime.now();
-  double _adherence = 70;
-  double _focus = 6;
-  double _energy = 6;
+  double _adherence = 85;
+  int _focus = 8;
+  int _energy = 7;
+  String _focusDesc = 'Laser focused, in the zone!';
+  String _energyDesc = 'Good physical and mental drive.';
   final _successCtrl = TextEditingController();
   final _strugglesCtrl = TextEditingController();
   final _improvementsCtrl = TextEditingController();
+  String _selectedDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
   bool _saving = false;
 
-  String _focusLabel(int v) {
-    const labels = {1: 'Scattered', 3: 'Distracted', 5: 'Moderate', 7: 'Focused', 10: 'Hyperfocused'};
-    return labels.entries.firstWhere((e) => v <= e.key, orElse: () => const MapEntry(10, 'Hyperfocused')).value;
-  }
+  static const _focusTexts = {
+    1: 'Very poor, constantly distracted.',
+    2: 'Below average attention span.',
+    3: 'Frequent scrolling and daydreaming.',
+    4: 'Completed basic works but drifted.',
+    5: 'Reasonable attention blocks.',
+    6: 'Good productivity chunks.',
+    7: 'Highly concentrated study sessions.',
+    8: 'Superb momentum, minimal breaks.',
+    9: 'Laser focused, in the zone!',
+    10: 'Peak flow state achieved.',
+  };
 
-  String _energyLabel(int v) {
-    const labels = {1: 'Exhausted', 3: 'Tired', 5: 'Steady', 7: 'Energetic', 10: 'Buzzing'};
-    return labels.entries.firstWhere((e) => v <= e.key, orElse: () => const MapEntry(10, 'Buzzing')).value;
-  }
+  static const _energyTexts = {
+    1: 'Totally exhausted, heavy fatigue.',
+    2: 'Drowsy and sluggish.',
+    3: 'Low stamina, forcing work.',
+    4: 'Moderate energy levels.',
+    5: 'Neutral baseline drive.',
+    6: 'Good energy, clear head.',
+    7: 'Highly energetic and motivated.',
+    8: 'Phenomenal stamina, vibrant focus.',
+    9: 'Peak physical and mental drive.',
+    10: 'Superhuman vitality.',
+  };
 
   @override
   void initState() {
@@ -50,222 +68,319 @@ class _ReflectionScreenState extends State<ReflectionScreen> {
     super.dispose();
   }
 
-  Future<void> _save() async {
-    setState(() => _saving = true);
-    final service = context.read<ReflectionService>();
-    final ref = Reflection(
-      id: '',
-      userId: '',
-      date: DateFormat('yyyy-MM-dd').format(_selectedDate),
-      adherenceScore: _adherence.toInt(),
-      focusScore: _focus.toInt(),
-      energyScore: _energy.toInt(),
-      notesSuccess: _successCtrl.text.trim().isEmpty ? null : _successCtrl.text.trim(),
-      notesStruggles: _strugglesCtrl.text.trim().isEmpty ? null : _strugglesCtrl.text.trim(),
-      notesImprovements: _improvementsCtrl.text.trim().isEmpty ? null : _improvementsCtrl.text.trim(),
-      createdAt: DateTime.now().toIso8601String(),
-    );
-    await service.saveReflection(ref);
-    setState(() => _saving = false);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Reflection saved!'), backgroundColor: AetherColors.emerald),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final refService = context.watch<ReflectionService>();
+    final rs = context.watch<ReflectionService>();
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Daily Reflection',
-              style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.w600, color: AetherColors.textBright)),
-          const SizedBox(height: 16),
           GlassCard(
-            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () async {
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: _selectedDate,
-                            firstDate: DateTime(2024),
-                            lastDate: DateTime.now(),
-                          );
-                          if (picked != null) setState(() => _selectedDate = picked);
-                        },
-                        icon: const Icon(Icons.calendar_today, size: 16),
-                        label: Text(DateFormat('MMM d, yyyy').format(_selectedDate)),
-                      ),
-                    ),
+                    const Icon(Icons.favorite, color: AetherColors.purple, size: 18),
+                    const SizedBox(width: 8),
+                    Text('End of Day Metrics',
+                        style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w600, color: AetherColors.textBright)),
                   ],
                 ),
-                const SizedBox(height: 20),
-                _slider('Adherence', _adherence, 100, AetherColors.emerald, '${_adherence.toInt()}%'),
                 const SizedBox(height: 16),
-                _slider('Focus', _focus, 10, AetherColors.purple, '${_focus.toInt()} - ${_focusLabel(_focus.toInt())}'),
+                TextField(
+                  decoration: const InputDecoration(labelText: 'Review Date'),
+                  readOnly: true,
+                  controller: TextEditingController(text: _selectedDate),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now(),
+                      firstDate: DateTime(2024),
+                      lastDate: DateTime.now(),
+                      builder: (ctx, child) => Theme(
+                        data: Theme.of(context).copyWith(
+                          colorScheme: const ColorScheme.dark(
+                            primary: AetherColors.purple,
+                            surface: Color(0xFF1A1530),
+                          ),
+                        ),
+                        child: child!,
+                      ),
+                    );
+                    if (picked != null) setState(() => _selectedDate = DateFormat('yyyy-MM-dd').format(picked));
+                  },
+                ),
                 const SizedBox(height: 16),
-                _slider('Energy', _energy, 10, AetherColors.cyan, '${_energy.toInt()} - ${_energyLabel(_energy.toInt())}'),
-                const SizedBox(height: 20),
-                const Divider(height: 1),
-                const SizedBox(height: 16),
-                Text('What went well?', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: AetherColors.textPrimary)),
+                _slider('Plan Adherence (%)', _adherence.round(), AetherColors.purple, (v) => setState(() => _adherence = v), 0, 100),
                 const SizedBox(height: 8),
-                TextField(controller: _successCtrl, maxLines: 3, decoration: const InputDecoration(hintText: 'Your wins today...')),
+                _slider('Focus Rating (1 - 10)', _focus, AetherColors.cyan, (v) => setState(() {
+                  _focus = v.round();
+                  _focusDesc = _focusTexts[_focus] ?? 'Consistent focused states.';
+                }), 1, 10),
+                Text(_focusDesc, style: const TextStyle(fontSize: 11, color: AetherColors.textMuted)),
+                const SizedBox(height: 8),
+                _slider('Energy Level (1 - 10)', _energy, AetherColors.emerald, (v) => setState(() {
+                  _energy = v.round();
+                  _energyDesc = _energyTexts[_energy] ?? 'Excellent energy base.';
+                }), 1, 10),
+                Text(_energyDesc, style: const TextStyle(fontSize: 11, color: AetherColors.textMuted)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          GlassCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.book, color: AetherColors.emerald, size: 18),
+                    const SizedBox(width: 8),
+                    Text('Reflection Journal',
+                        style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w600, color: AetherColors.textBright)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _journalField('What went exceptionally well today?', 'Achievements, breakthroughs...', _successCtrl),
                 const SizedBox(height: 12),
-                Text('What got in your way?', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: AetherColors.textPrimary)),
-                const SizedBox(height: 8),
-                TextField(controller: _strugglesCtrl, maxLines: 3, decoration: const InputDecoration(hintText: 'Any obstacles...')),
+                _journalField('What got in your way?', 'Distractions, fatigue, blockers...', _strugglesCtrl),
                 const SizedBox(height: 12),
-                Text('Adjustment for tomorrow?', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: AetherColors.textPrimary)),
-                const SizedBox(height: 8),
-                TextField(controller: _improvementsCtrl, maxLines: 3, decoration: const InputDecoration(hintText: 'One thing to improve...')),
-                const SizedBox(height: 20),
+                _journalField('What will you improve tomorrow?', 'Change timings, adjust study spots...', _improvementsCtrl),
+                const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _saving ? null : _save,
-                    child: _saving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('Commit Daily Reflection'),
+                  child: ElevatedButton.icon(
+                    onPressed: _saving ? null : _saveReflection,
+                    icon: _saving
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.save, size: 16),
+                    label: const Text('Commit Daily Reflection'),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 20),
-          Text('History', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w600, color: AetherColors.textBright)),
-          const SizedBox(height: 12),
-          if (refService.reflections.isEmpty)
-            const Text('No reflections yet', style: TextStyle(color: AetherColors.textMuted))
-          else
-            ...refService.reflections.take(10).map((r) => Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AetherColors.glass,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AetherColors.glassBorder),
-              ),
-              child: InkWell(
-                onTap: () => _showReflectionDetail(r),
-                child: Row(
+          const SizedBox(height: 16),
+          GlassCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Expanded(flex: 2, child: Text(r.date, style: const TextStyle(color: AetherColors.textPrimary, fontSize: 13))),
-                    Expanded(child: _miniBar(r.adherenceScore)),
-                    Expanded(child: Text('${r.focusScore}', textAlign: TextAlign.center,
-                        style: TextStyle(color: AetherColors.purple, fontSize: 13))),
-                    Expanded(child: Text('${r.energyScore}', textAlign: TextAlign.center,
-                        style: TextStyle(color: AetherColors.cyan, fontSize: 13))),
-                    if (r.notesSuccess != null)
-                      const Icon(Icons.short_text, color: AetherColors.textMuted, size: 14),
+                    const Icon(Icons.history, color: AetherColors.purple, size: 18),
+                    const SizedBox(width: 8),
+                    Text('Historical Reflections Log',
+                        style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w600, color: AetherColors.textBright)),
                   ],
                 ),
-              ),
-            )),
+                const SizedBox(height: 12),
+                if (rs.reflections.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Center(child: Text('No daily logs recorded yet. Reflect tonight!',
+                        style: TextStyle(color: AetherColors.textMuted, fontSize: 13))),
+                  )
+                else
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: DataTable(
+                      headingRowColor: WidgetStateProperty.all(Colors.white.withValues(alpha: 0.03)),
+                      columns: const [
+                        DataColumn(label: Text('Date', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: AetherColors.textBright))),
+                        DataColumn(label: Text('Adh.', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: AetherColors.textBright))),
+                        DataColumn(label: Text('Focus', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: AetherColors.textBright))),
+                        DataColumn(label: Text('Energy', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: AetherColors.textBright))),
+                        DataColumn(label: Text('Highlights', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: AetherColors.textBright))),
+                        DataColumn(label: Text('Struggles', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: AetherColors.textBright))),
+                      ],
+                      rows: rs.reflections.map((r) => DataRow(
+                        onSelectChanged: (_) => _showReflectionDetail(r),
+                        cells: [
+                        DataCell(Text(r.date, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AetherColors.textBright))),
+                        DataCell(Row(children: [
+                          Container(width: 40, height: 4, decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(2),
+                          ), child: FractionallySizedBox(
+                            alignment: Alignment.centerLeft,
+                            widthFactor: r.adherenceScore / 100,
+                            child: Container(decoration: BoxDecoration(
+                              color: AetherColors.purple,
+                              borderRadius: BorderRadius.circular(2),
+                            )),
+                          )),
+                          const SizedBox(width: 4),
+                          Text('${r.adherenceScore}%', style: const TextStyle(fontSize: 11, color: AetherColors.textBright)),
+                        ])),
+                        DataCell(Text('${r.focusScore}/10', style: const TextStyle(fontSize: 12, color: AetherColors.textBright))),
+                        DataCell(Text('${r.energyScore}/10', style: const TextStyle(fontSize: 12, color: AetherColors.textBright))),
+                        DataCell(SizedBox(
+                          width: 120,
+                          child: Text(r.notesSuccess.isNotEmpty ? r.notesSuccess : '—',
+                              style: const TextStyle(fontSize: 11, color: AetherColors.textPrimary), overflow: TextOverflow.ellipsis),
+                        )),
+                        DataCell(SizedBox(
+                          width: 120,
+                          child: Text(r.notesStruggles.isNotEmpty ? r.notesStruggles : '—',
+                              style: const TextStyle(fontSize: 11, color: AetherColors.textPrimary), overflow: TextOverflow.ellipsis),
+                        )),
+                      ])).toList(),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
         ],
       ),
     );
   }
 
-  Widget _slider(String label, double value, double max, Color color, String display) {
+  Widget _slider(String label, int value, Color color, ValueChanged<double> onChanged, double min, double max) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: AetherColors.textPrimary)),
-            const Spacer(),
-            Text(display, style: TextStyle(fontSize: 13, color: color, fontWeight: FontWeight.w600)),
+            Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AetherColors.textPrimary)),
+            Text('$value${label.contains('%') ? '%' : ''}',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: color, fontFamily: 'Outfit')),
           ],
         ),
         SliderTheme(
-          data: SliderTheme.of(context).copyWith(
-            activeTrackColor: color,
-            inactiveTrackColor: color.withValues(alpha: 0.2),
-            thumbColor: color,
-            overlayColor: color.withValues(alpha: 0.1),
+          data: SliderThemeData(
             trackHeight: 6,
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+            activeTrackColor: color,
+            inactiveTrackColor: Colors.white.withValues(alpha: 0.06),
+            thumbColor: color,
+            overlayColor: color.withValues(alpha: 0.15),
           ),
           child: Slider(
-            value: value,
-            min: 0,
+            value: value.toDouble(),
+            min: min,
             max: max,
-            divisions: max.toInt(),
-            onChanged: (v) {
-              setState(() {
-                if (label == 'Adherence') { _adherence = v; }
-                else if (label == 'Focus') { _focus = v; }
-                else { _energy = v; }
-              });
-            },
+            divisions: ((max - min) * 10).round().toInt(),
+            onChanged: onChanged,
           ),
         ),
       ],
     );
   }
 
-  Widget _miniBar(int value) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(3),
-      child: SizedBox(
-        height: 6,
-        child: Row(
-          children: [
-            Flexible(
-              flex: value,
-              child: Container(color: AetherColors.emerald),
-            ),
-            Flexible(
-              flex: 100 - value,
-              child: Container(color: AetherColors.glassBorder),
-            ),
-          ],
+  Widget _journalField(String label, String hint, TextEditingController ctrl) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AetherColors.textPrimary)),
+        const SizedBox(height: 6),
+        TextField(
+          controller: ctrl,
+          maxLines: 3,
+          decoration: InputDecoration(hintText: hint),
         ),
-      ),
+      ],
     );
   }
 
   void _showReflectionDetail(Reflection r) {
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1530),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Reflection: ${r.date}',
+            style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600, color: AetherColors.textBright)),
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(r.date, style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w600, color: AetherColors.textBright)),
-            const SizedBox(height: 16),
-            _detailRow('Adherence', '${r.adherenceScore}%', AetherColors.emerald),
-            _detailRow('Focus', '${r.focusScore}/10', AetherColors.purple),
-            _detailRow('Energy', '${r.energyScore}/10', AetherColors.cyan),
-            if (r.notesSuccess != null) ...[const SizedBox(height: 12), Text('Went well:', style: const TextStyle(color: AetherColors.textMuted, fontSize: 13)), Text(r.notesSuccess!)],
-            if (r.notesStruggles != null) ...[const SizedBox(height: 12), Text('Struggles:', style: const TextStyle(color: AetherColors.textMuted, fontSize: 13)), Text(r.notesStruggles!)],
-            if (r.notesImprovements != null) ...[const SizedBox(height: 12), Text('Improvements:', style: const TextStyle(color: AetherColors.textMuted, fontSize: 13)), Text(r.notesImprovements!)],
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _statCol(Icons.check_circle_outline, 'Adherence', '${r.adherenceScore}%', AetherColors.purple),
+                _statCol(Icons.psychology, 'Focus', '${r.focusScore}/10', AetherColors.cyan),
+                _statCol(Icons.bolt, 'Energy', '${r.energyScore}/10', AetherColors.emerald),
+              ],
+            ),
+            const Divider(color: AetherColors.glassBorder, height: 24),
+            _noteSection(Icons.star, 'What went well', r.notesSuccess, AetherColors.emerald),
+            const SizedBox(height: 12),
+            _noteSection(Icons.warning, 'Struggles & Distractions', r.notesStruggles, AetherColors.rose),
+            const SizedBox(height: 12),
+            _noteSection(Icons.lightbulb, 'Planned Improvements', r.notesImprovements, AetherColors.purple),
           ],
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close', style: TextStyle(color: AetherColors.textMuted)),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _detailRow(String label, String value, Color color) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: [
-          Text('$label: ', style: const TextStyle(color: AetherColors.textMuted, fontSize: 14)),
-          Text(value, style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w600)),
-        ],
-      ),
+  Widget _statCol(IconData icon, String label, String value, Color color) {
+    return Column(
+      children: [
+        Icon(icon, color: color, size: 22),
+        const SizedBox(height: 4),
+        Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: color, fontFamily: 'Outfit')),
+        Text(label, style: const TextStyle(fontSize: 11, color: AetherColors.textMuted)),
+      ],
     );
+  }
+
+  Widget _noteSection(IconData icon, String title, String content, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(children: [
+          Icon(icon, color: color, size: 14),
+          const SizedBox(width: 6),
+          Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: color)),
+        ]),
+        const SizedBox(height: 4),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.03),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(content.isNotEmpty ? content : 'None recorded.',
+              style: const TextStyle(fontSize: 12, color: AetherColors.textPrimary)),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _saveReflection() async {
+    setState(() => _saving = true);
+    final err = await context.read<ReflectionService>().saveReflection({
+      'date': _selectedDate,
+      'adherence_score': _adherence.round(),
+      'focus_score': _focus,
+      'energy_score': _energy,
+      'notes_success': _successCtrl.text,
+      'notes_struggles': _strugglesCtrl.text,
+      'notes_improvements': _improvementsCtrl.text,
+    });
+    if (mounted) {
+      setState(() => _saving = false);
+      if (err == null) {
+        _successCtrl.clear();
+        _strugglesCtrl.clear();
+        _improvementsCtrl.clear();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Reflection saved!'), duration: Duration(seconds: 2)),
+        );
+      }
+    }
   }
 }

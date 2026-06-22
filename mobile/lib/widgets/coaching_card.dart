@@ -3,18 +3,18 @@ import '../models/analytics.dart';
 import '../theme/aether_theme.dart';
 
 class CoachingCard extends StatelessWidget {
-  final CoachingSuggestion suggestion;
+  final CoachingTip tip;
 
-  const CoachingCard({super.key, required this.suggestion});
+  const CoachingCard({super.key, required this.tip});
 
   @override
   Widget build(BuildContext context) {
     Color color;
     IconData icon;
-    switch (suggestion.type) {
+    switch (tip.type) {
       case 'success':
         color = AetherColors.emerald;
-        icon = Icons.emoji_events;
+        icon = Icons.check_circle;
         break;
       case 'warning':
         color = AetherColors.amber;
@@ -30,26 +30,39 @@ class CoachingCard extends StatelessWidget {
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        border: Border(
+          left: BorderSide(color: color, width: 3),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color, size: 20),
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Icon(icon, color: color, size: 18),
+          ),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              suggestion.message,
-              style: TextStyle(
-                fontSize: 13,
-                color: AetherColors.textPrimary,
-                height: 1.4,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(tip.title,
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AetherColors.textBright)),
+                const SizedBox(height: 3),
+                Text(tip.text,
+                    style: const TextStyle(
+                        fontSize: 12,
+                        color: AetherColors.textMuted,
+                        height: 1.4)),
+              ],
             ),
           ),
         ],

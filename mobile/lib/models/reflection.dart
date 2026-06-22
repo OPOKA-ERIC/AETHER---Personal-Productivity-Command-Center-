@@ -5,10 +5,9 @@ class Reflection {
   final int adherenceScore;
   final int focusScore;
   final int energyScore;
-  final String? notesSuccess;
-  final String? notesStruggles;
-  final String? notesImprovements;
-  final String createdAt;
+  final String notesSuccess;
+  final String notesStruggles;
+  final String notesImprovements;
 
   Reflection({
     required this.id,
@@ -17,10 +16,9 @@ class Reflection {
     required this.adherenceScore,
     required this.focusScore,
     required this.energyScore,
-    this.notesSuccess,
-    this.notesStruggles,
-    this.notesImprovements,
-    required this.createdAt,
+    this.notesSuccess = '',
+    this.notesStruggles = '',
+    this.notesImprovements = '',
   });
 
   factory Reflection.fromJson(Map<String, dynamic> json) {
@@ -29,12 +27,11 @@ class Reflection {
       userId: json['user_id'] ?? '',
       date: json['date'] ?? '',
       adherenceScore: json['adherence_score'] ?? 0,
-      focusScore: json['focus_score'] ?? 1,
-      energyScore: json['energy_score'] ?? 1,
-      notesSuccess: json['notes_success'],
-      notesStruggles: json['notes_struggles'],
-      notesImprovements: json['notes_improvements'],
-      createdAt: json['created_at'] ?? '',
+      focusScore: json['focus_score'] ?? 0,
+      energyScore: json['energy_score'] ?? 0,
+      notesSuccess: json['notes_success'] ?? '',
+      notesStruggles: json['notes_struggles'] ?? '',
+      notesImprovements: json['notes_improvements'] ?? '',
     );
   }
 

@@ -3,6 +3,18 @@ const _supabase = window.supabase.createClient(
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0cmRnaHJzanp0emxndG5ybWRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNjM5MDgsImV4cCI6MjA5NTYzOTkwOH0.KwrEYomDGu9CBHK3pymyayE_AyyQuklxhhXW6BP9yg8'
 );
 
+function togglePasswordVisibility(id) {
+  const input = document.getElementById(id);
+  const btn = input.parentElement.querySelector('.password-toggle i');
+  if (input.type === 'password') {
+    input.type = 'text';
+    if (btn) { btn.className = 'fa-solid fa-eye-slash'; }
+  } else {
+    input.type = 'password';
+    if (btn) { btn.className = 'fa-solid fa-eye'; }
+  }
+}
+
 function showForm(name) {
   document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
   document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
@@ -37,31 +49,12 @@ async function initAuth() {
     return;
   }
 
-  const { data: { session } } = await _supabase.auth.getSession();
-
-  if (session) {
-    STATE.token = session.access_token;
-    STATE.user = session.user;
-    updateSidebarUser(session.user);
-    document.getElementById('auth-overlay').classList.remove('active');
-    bootApp();
-  } else {
-    document.getElementById('auth-overlay').classList.add('active');
-  }
-
-  _supabase.auth.onAuthStateChange((event, session) => {
-    if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-      STATE.token = session.access_token;
-      STATE.user = session.user;
-      updateSidebarUser(session.user);
-      document.getElementById('auth-overlay').classList.remove('active');
-      bootApp();
-    } else if (event === 'SIGNED_OUT') {
-      STATE.token = null;
-      STATE.user = null;
-      location.reload();
-    }
-  });
+  // Single-user mode (SQLite) — skip auth
+  STATE.token = 'local-mode';
+  STATE.user = { id: 1, email: 'local@aether.app', user_metadata: { display_name: 'You' } };
+  updateSidebarUser(STATE.user);
+  document.getElementById('auth-overlay').classList.remove('active');
+  bootApp();
 }
 
 function updateSidebarUser(user) {

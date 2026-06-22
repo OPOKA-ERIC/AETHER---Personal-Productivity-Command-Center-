@@ -1,10 +1,9 @@
 import 'package:flutter/foundation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/project.dart';
-import 'supabase_service.dart';
+import 'api_service.dart';
 
 class ProjectService extends ChangeNotifier {
-  final SupabaseClient _client = SupabaseService().client;
+  final ApiService _api = ApiService();
   List<Project> _projects = [];
   bool _loading = false;
 
@@ -15,11 +14,8 @@ class ProjectService extends ChangeNotifier {
     _loading = true;
     notifyListeners();
     try {
-      final data = await _client
-          .from('projects')
-          .select('*, milestones(*)')
-          .order('created_at', ascending: false);
-      _projects = (data as List).map((j) => Project.fromJson(j)).toList();
+      final data = await _api.get('/projects');
+      _projects = data.map((j) => Project.fromJson(j as Map<String, dynamic>)).toList();
     } catch (e) {
       debugPrint('Error fetching projects: $e');
     }
@@ -27,12 +23,9 @@ class ProjectService extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<String?> createProject(String title, String? description) async {
+  Future<String?> createProject(String title, String description) async {
     try {
-      await _client.from('projects').insert({
-        'title': title,
-        'description': description,
-      });
+      await _api.post('/projects', {'title': title, 'description': description});
       await fetchProjects();
       return null;
     } catch (e) {
@@ -42,7 +35,7 @@ class ProjectService extends ChangeNotifier {
 
   Future<String?> deleteProject(String id) async {
     try {
-      await _client.from('projects').delete().eq('id', id);
+      await _api.delete('/projects/$id');
       await fetchProjects();
       return null;
     } catch (e) {
@@ -50,23 +43,22 @@ class ProjectService extends ChangeNotifier {
     }
   }
 
-  Future<String?> addMilestone(String projectId, String title, String? dueDate) async {
+  Future<String?> createMilestone(String projectId, String title, String? dueDate) async {
     try {
-      await _client.from('milestones').insert({
-        'project_id': projectId,
+      await _api.post('/projects/$projectId/milestones', {
         'title': title,
         'due_date': dueDate,
       });
       await fetchProjects();
       return null;
     } catch (e) {
-      return 'Failed to add milestone: $e';
+      return 'Failed to create milestone: $e';
     }
   }
 
   Future<String?> toggleMilestone(String id, bool completed) async {
     try {
-      await _client.from('milestones').update({'completed': completed}).eq('id', id);
+      await _api.put('/milestones/$id', {'completed': completed});
       await fetchProjects();
       return null;
     } catch (e) {
@@ -76,7 +68,7 @@ class ProjectService extends ChangeNotifier {
 
   Future<String?> deleteMilestone(String id) async {
     try {
-      await _client.from('milestones').delete().eq('id', id);
+      await _api.delete('/milestones/$id');
       await fetchProjects();
       return null;
     } catch (e) {

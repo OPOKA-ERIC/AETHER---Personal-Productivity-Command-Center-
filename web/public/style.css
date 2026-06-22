@@ -2328,6 +2328,25 @@ canvas {
   color: var(--text-muted);
   font-family: monospace;
 }
+.week-nav-btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1;
+  border-radius: 6px;
+  background: rgba(139, 92, 246, 0.08);
+  border-color: rgba(139, 92, 246, 0.2);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.week-nav-btn:hover {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: rgba(139, 92, 246, 0.4);
+  color: var(--text-bright);
+}
 
 /* ==========================================================================
    HISTORY CALENDAR
@@ -2797,6 +2816,35 @@ canvas {
 .auth-form input:focus {
   border-color: var(--color-purple);
   box-shadow: 0 0 0 3px rgba(120, 90, 200, 0.15);
+}
+
+.password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.password-wrapper input {
+  padding-right: 2.5rem !important;
+}
+.password-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 4px;
+  font-size: 1rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+.password-toggle:hover {
+  color: #fff;
 }
 
 .auth-msg {

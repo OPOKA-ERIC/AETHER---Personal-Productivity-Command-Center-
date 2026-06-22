@@ -1,10 +1,9 @@
 import 'package:flutter/foundation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/task.dart';
-import 'supabase_service.dart';
+import 'api_service.dart';
 
 class TaskService extends ChangeNotifier {
-  final SupabaseClient _client = SupabaseService().client;
+  final ApiService _api = ApiService();
   List<Task> _tasks = [];
   bool _loading = false;
 
@@ -19,20 +18,16 @@ class TaskService extends ChangeNotifier {
   }
 
   List<Task> get todaysTasks {
-    final dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-    final today = DateTime.now().weekday - 1;
-    return tasksForDay(dayNames[today]);
+    final days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    return tasksForDay(days[DateTime.now().weekday - 1]);
   }
 
   Future<void> fetchTasks() async {
     _loading = true;
     notifyListeners();
     try {
-      final data = await _client
-          .from('tasks')
-          .select()
-          .order('start_time');
-      _tasks = (data as List).map((j) => Task.fromJson(j)).toList();
+      final data = await _api.get('/tasks');
+      _tasks = data.map((j) => Task.fromJson(j as Map<String, dynamic>)).toList();
     } catch (e) {
       debugPrint('Error fetching tasks: $e');
     }
@@ -42,7 +37,7 @@ class TaskService extends ChangeNotifier {
 
   Future<String?> createTask(Task task) async {
     try {
-      await _client.from('tasks').insert(task.toJson());
+      await _api.post('/tasks', task.toJson());
       await fetchTasks();
       return null;
     } catch (e) {
@@ -52,7 +47,7 @@ class TaskService extends ChangeNotifier {
 
   Future<String?> updateTask(String id, Map<String, dynamic> updates) async {
     try {
-      await _client.from('tasks').update(updates).eq('id', id);
+      await _api.put('/tasks/$id', updates);
       await fetchTasks();
       return null;
     } catch (e) {
@@ -62,7 +57,7 @@ class TaskService extends ChangeNotifier {
 
   Future<String?> deleteTask(String id) async {
     try {
-      await _client.from('tasks').delete().eq('id', id);
+      await _api.delete('/tasks/$id');
       await fetchTasks();
       return null;
     } catch (e) {
@@ -79,10 +74,9 @@ class TaskService extends ChangeNotifier {
 
   Future<void> resetWeeklyCompletions() async {
     try {
-      await _client
-          .from('tasks')
-          .update({'completed': false, 'actual_minutes_spent': 0})
-          .eq('completed', true);
+      for (final task in _tasks.where((t) => t.completed)) {
+        await updateTask(task.id, {'completed': false, 'actual_minutes_spent': 0});
+      }
       await fetchTasks();
     } catch (e) {
       debugPrint('Error resetting tasks: $e');

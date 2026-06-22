@@ -12,296 +12,247 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
-  final _forgotEmailController = TextEditingController();
-  bool _showForgotPassword = false;
-  bool _obscurePassword = true;
-  String? _error;
+  late TabController _tabCtrl;
+  final _loginEmailCtrl = TextEditingController();
+  final _loginPassCtrl = TextEditingController();
+  bool _obscureLoginPass = true;
+  final _regNameCtrl = TextEditingController();
+  final _regEmailCtrl = TextEditingController();
+  final _regPassCtrl = TextEditingController();
+  final _regConfirmCtrl = TextEditingController();
+  bool _obscureRegPass = true;
+  bool _obscureRegConfirm = true;
+  String? _loginError;
+  String? _regError;
+  bool _loginLoading = false;
+  bool _regLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabCtrl = TabController(length: 2, vsync: this);
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
-    _forgotEmailController.dispose();
+    _tabCtrl.dispose();
+    _loginEmailCtrl.dispose();
+    _loginPassCtrl.dispose();
+    _regNameCtrl.dispose();
+    _regEmailCtrl.dispose();
+    _regPassCtrl.dispose();
+    _regConfirmCtrl.dispose();
     super.dispose();
-  }
-
-  Future<void> _handleSignIn() async {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      setState(() => _error = 'Please fill in all fields');
-      return;
-    }
-    final auth = context.read<AuthService>();
-    final error = await auth.signIn(_emailController.text.trim(), _passwordController.text);
-    if (error != null) setState(() => _error = error);
-  }
-
-  Future<void> _handleSignUp() async {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      setState(() => _error = 'Please fill in all fields');
-      return;
-    }
-    if (_passwordController.text != _confirmPasswordController.text) {
-      setState(() => _error = 'Passwords do not match');
-      return;
-    }
-    final auth = context.read<AuthService>();
-    final error = await auth.signUp(_emailController.text.trim(), _passwordController.text);
-    if (error != null) setState(() => _error = error);
-  }
-
-  Future<void> _handleGoogleSignIn() async {
-    final auth = context.read<AuthService>();
-    final error = await auth.signInWithGoogle();
-    if (error != null) setState(() => _error = error);
-  }
-
-  Future<void> _handleResetPassword() async {
-    if (_forgotEmailController.text.isEmpty) {
-      setState(() => _error = 'Enter your email');
-      return;
-    }
-    final auth = context.read<AuthService>();
-    final error = await auth.resetPassword(_forgotEmailController.text.trim());
-    if (error != null) {
-      setState(() => _error = error);
-    } else {
-      setState(() {
-        _showForgotPassword = false;
-        _error = 'Password reset email sent!';
-      });
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AetherColors.bg,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [AetherColors.bg, AetherColors.bgGradientEnd],
-          ),
-        ),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: _showForgotPassword ? _buildForgotPassword() : _buildAuth(),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAuth() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: AetherColors.glass,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AetherColors.glassBorder),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('AETHER', style: GoogleFonts.outfit(
-            fontSize: 32,
-            fontWeight: FontWeight.w700,
-            color: AetherColors.textBright,
-            letterSpacing: 6,
-          )),
-          const SizedBox(height: 4),
-          Text('Personal Task Tracker', style: GoogleFonts.inter(
-            fontSize: 13,
-            color: AetherColors.textMuted,
-          )),
-          const SizedBox(height: 24),
-          TabBar(
-            controller: _tabController,
-            tabs: const [
-              Tab(text: 'Sign In'),
-              Tab(text: 'Create Account'),
-            ],
-            indicatorColor: AetherColors.purple,
-            labelColor: AetherColors.purple,
-            unselectedLabelColor: AetherColors.textMuted,
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            height: 260,
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildSignInForm(),
-                _buildSignUpForm(),
-              ],
-            ),
-          ),
-          if (_error != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Text(_error!, style: const TextStyle(color: AetherColors.rose, fontSize: 13)),
-            ),
-          const SizedBox(height: 16),
-          Row(
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 28),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Expanded(child: Divider(color: AetherColors.glassBorder)),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Text('or', style: GoogleFonts.inter(color: AetherColors.textMuted, fontSize: 13)),
+              Container(
+                width: 56, height: 56,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(colors: [AetherColors.purple, Color(0xFF6D28D9)]),
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [BoxShadow(color: AetherColors.purple.withValues(alpha: 0.3), blurRadius: 16)],
+                ),
+                child: const Icon(Icons.auto_awesome, color: Colors.white, size: 24),
               ),
-              const Expanded(child: Divider(color: AetherColors.glassBorder)),
+              const SizedBox(height: 16),
+              ShaderMask(
+                shaderCallback: (b) => const LinearGradient(
+                  colors: [Colors.white, Color(0xFFC084FC)],
+                ).createShader(b),
+                child: Text('AETHER', style: GoogleFonts.outfit(
+                  fontSize: 28, fontWeight: FontWeight.w700,
+                  letterSpacing: 4, color: Colors.white,
+                )),
+              ),
+              const SizedBox(height: 4),
+              Text('Personal Productivity Command Center',
+                  style: TextStyle(fontSize: 13, color: AetherColors.textMuted)),
+              const SizedBox(height: 40),
+
+              Container(
+                decoration: BoxDecoration(
+                  color: AetherColors.glass,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AetherColors.glassBorder),
+                ),
+                child: Column(
+                  children: [
+                    TabBar(
+                      controller: _tabCtrl,
+                      indicator: BoxDecoration(
+                        color: AetherColors.purple.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      indicatorSize: TabBarIndicatorSize.tab,
+                      labelColor: AetherColors.textBright,
+                      unselectedLabelColor: AetherColors.textMuted,
+                      labelStyle: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
+                      unselectedLabelStyle: GoogleFonts.inter(fontSize: 14),
+                      dividerColor: Colors.transparent,
+                      tabs: const [
+                        Tab(text: 'Sign In'),
+                        Tab(text: 'Create Account'),
+                      ],
+                    ),
+                    SizedBox(
+                      height: 320,
+                      child: TabBarView(
+                        controller: _tabCtrl,
+                        children: [
+                          _buildLoginForm(),
+                          _buildRegisterForm(),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: _handleGoogleSignIn,
-              icon: const Icon(Icons.g_mobiledata, color: Colors.white),
-              label: Text('Continue with Google', style: GoogleFonts.inter(color: AetherColors.textPrimary)),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: AetherColors.glassBorder),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextButton(
-            onPressed: () => setState(() => _showForgotPassword = true),
-            child: Text('Forgot Password?', style: GoogleFonts.inter(color: AetherColors.textMuted, fontSize: 13)),
-          ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildSignInForm() {
-    return Column(
-      children: [
-        TextField(
-          controller: _emailController,
-          decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email_outlined, size: 20)),
-          keyboardType: TextInputType.emailAddress,
-        ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: _passwordController,
-          decoration: InputDecoration(
-            labelText: 'Password',
-            prefixIcon: const Icon(Icons.lock_outline, size: 20),
-            suffixIcon: IconButton(
-              icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, size: 18),
-              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-            ),
-          ),
-          obscureText: _obscurePassword,
-        ),
-        const SizedBox(height: 20),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: _handleSignIn,
-            child: const Text('Sign In'),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSignUpForm() {
-    return Column(
-      children: [
-        TextField(
-          controller: _emailController,
-          decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email_outlined, size: 20)),
-          keyboardType: TextInputType.emailAddress,
-        ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: _passwordController,
-          decoration: const InputDecoration(labelText: 'Password', prefixIcon: Icon(Icons.lock_outline, size: 20)),
-          obscureText: true,
-        ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: _confirmPasswordController,
-          decoration: const InputDecoration(labelText: 'Confirm Password', prefixIcon: Icon(Icons.lock_outline, size: 20)),
-          obscureText: true,
-        ),
-        const SizedBox(height: 20),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: _handleSignUp,
-            child: const Text('Create Account'),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildForgotPassword() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: AetherColors.glass,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AetherColors.glassBorder),
-      ),
+  Widget _buildLoginForm() {
+    return Padding(
+      padding: const EdgeInsets.all(20),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Reset Password', style: GoogleFonts.outfit(
-            fontSize: 24, fontWeight: FontWeight.w600, color: AetherColors.textBright,
-          )),
-          const SizedBox(height: 16),
           TextField(
-            controller: _forgotEmailController,
-            decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email_outlined, size: 20)),
+            controller: _loginEmailCtrl,
+            decoration: const InputDecoration(hintText: 'Email', contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
             keyboardType: TextInputType.emailAddress,
           ),
-          if (_error != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Text(_error!, style: TextStyle(
-                color: _error!.contains('sent') ? AetherColors.emerald : AetherColors.rose,
-                fontSize: 13,
-              )),
-            ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(onPressed: _handleResetPassword, child: const Text('Send Reset Link')),
-          ),
           const SizedBox(height: 12),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _showForgotPassword = false;
-                _error = null;
-              });
-            },
-            child: Text('Back to Sign In', style: GoogleFonts.inter(color: AetherColors.textMuted, fontSize: 13)),
+          TextField(
+            controller: _loginPassCtrl,
+            decoration: InputDecoration(
+              hintText: 'Password',
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              suffixIcon: IconButton(
+                icon: Icon(_obscureLoginPass ? Icons.visibility : Icons.visibility_off, size: 18),
+                onPressed: () => setState(() => _obscureLoginPass = !_obscureLoginPass),
+              ),
+            ),
+            obscureText: _obscureLoginPass,
+          ),
+          if (_loginError != null) ...[
+            const SizedBox(height: 8),
+            Text(_loginError!, style: const TextStyle(color: AetherColors.rose, fontSize: 12)),
+          ],
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 44,
+            child: ElevatedButton(
+              onPressed: _loginLoading ? null : _handleLogin,
+              style: ElevatedButton.styleFrom(backgroundColor: AetherColors.purple),
+              child: _loginLoading
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Text('Sign In'),
+            ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildRegisterForm() {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: _regNameCtrl,
+              decoration: const InputDecoration(hintText: 'Display Name', contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _regEmailCtrl,
+              decoration: const InputDecoration(hintText: 'Email', contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
+              keyboardType: TextInputType.emailAddress,
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _regPassCtrl,
+              decoration: InputDecoration(
+                hintText: 'Password (min 6 chars)',
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                suffixIcon: IconButton(
+                  icon: Icon(_obscureRegPass ? Icons.visibility : Icons.visibility_off, size: 18),
+                  onPressed: () => setState(() => _obscureRegPass = !_obscureRegPass),
+                ),
+              ),
+              obscureText: _obscureRegPass,
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _regConfirmCtrl,
+              decoration: InputDecoration(
+                hintText: 'Confirm Password',
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                suffixIcon: IconButton(
+                  icon: Icon(_obscureRegConfirm ? Icons.visibility : Icons.visibility_off, size: 18),
+                  onPressed: () => setState(() => _obscureRegConfirm = !_obscureRegConfirm),
+                ),
+              ),
+              obscureText: _obscureRegConfirm,
+            ),
+            if (_regError != null) ...[
+              const SizedBox(height: 8),
+              Text(_regError!, style: const TextStyle(color: AetherColors.rose, fontSize: 12)),
+            ],
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 44,
+              child: ElevatedButton(
+                onPressed: _regLoading ? null : _handleRegister,
+                style: ElevatedButton.styleFrom(backgroundColor: AetherColors.purple),
+                child: _regLoading
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text('Create Account'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleLogin() async {
+    setState(() { _loginLoading = true; _loginError = null; });
+    final err = await context.read<AuthService>().signIn(
+      _loginEmailCtrl.text.trim(), _loginPassCtrl.text,
+    );
+    if (mounted) setState(() { _loginLoading = false; _loginError = err; });
+  }
+
+  Future<void> _handleRegister() async {
+    if (_regPassCtrl.text.length < 6) {
+      setState(() => _regError = 'Password must be at least 6 characters');
+      return;
+    }
+    if (_regPassCtrl.text != _regConfirmCtrl.text) {
+      setState(() => _regError = 'Passwords do not match');
+      return;
+    }
+    setState(() { _regLoading = true; _regError = null; });
+    final err = await context.read<AuthService>().signUp(
+      _regNameCtrl.text.trim(), _regEmailCtrl.text.trim(), _regPassCtrl.text,
+    );
+    if (mounted) setState(() { _regLoading = false; _regError = err; });
   }
 }

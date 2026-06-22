@@ -13,8 +13,41 @@ const STATE = {
   coachingData: null,
   taskTimers: {},
   token: null,
-  user: null
+  user: null,
+  weekOffset: 0
 };
+
+// Dynamic Category Color Engine
+const CATEGORY_COLORS = {
+  coding: '#06B6D4', study: '#8B5CF6', exercise: '#10B981',
+  leisure: '#F59E0B', urgent: '#F43F5E', personal: '#A78BFA',
+  health: '#34D399', reading: '#FB923C', meeting: '#38BDF8',
+  'deep work': '#C084FC',
+};
+const CATEGORY_PALETTE = ['#06B6D4','#8B5CF6','#10B981','#F59E0B','#F43F5E','#A78BFA','#34D399','#FB923C','#38BDF8','#C084FC','#EC4899','#14B8A6'];
+
+function getCategoryColor(cat) {
+  if (CATEGORY_COLORS[cat]) return CATEGORY_COLORS[cat];
+  let hash = 0;
+  for (let i = 0; i < cat.length; i++) hash = cat.charCodeAt(i) + ((hash << 5) - hash);
+  return CATEGORY_PALETTE[Math.abs(hash) % CATEGORY_PALETTE.length];
+}
+
+function ensureCategoryStyles(cat) {
+  if (CATEGORY_COLORS[cat]) return;
+  CATEGORY_COLORS[cat] = getCategoryColor(cat);
+  const color = CATEGORY_COLORS[cat];
+  const style = document.createElement('style');
+  style.textContent = `
+    .timeline-card.cat-${cat} { border-left: 3px solid ${color}; background: rgba(${parseInt(color.slice(1,3),16)}, ${parseInt(color.slice(3,5),16)}, ${parseInt(color.slice(5,7),16)}, 0.04); }
+    .timeline-card.cat-${cat} .timeline-category-tag { color: ${color}; }
+    .planner-time-block.cat-${cat} { border-left: 2.5px solid ${color}; background: rgba(${parseInt(color.slice(1,3),16)}, ${parseInt(color.slice(3,5),16)}, ${parseInt(color.slice(5,7),16)}, 0.04); }
+    .planner-time-block.cat-${cat} .block-cat { color: ${color}; }
+    .category-progress-fill.cat-${cat} { background: linear-gradient(135deg, ${color}, ${color}88); }
+    .cat-dot-${cat} { background: ${color}; }
+  `;
+  document.head.appendChild(style);
+}
 
 // Web Audio API Ambient Synthesizer
 let audioCtx = null;
@@ -151,15 +184,26 @@ function navigateToView(viewId) {
   refreshViewData(viewId);
 }
 
+function updateCategoryDatalists() {
+  const cats = [...new Set(STATE.tasks.map(t => t.category))];
+  ['quick-category-list', 'category-list'].forEach(id => {
+    const dl = document.getElementById(id);
+    if (!dl) return;
+    dl.innerHTML = cats.map(c => `<option value="${c}">${c.charAt(0).toUpperCase() + c.slice(1)}</option>`).join('');
+  });
+}
+
 // Coordinate view loading routines
 async function refreshViewData(viewId) {
   try {
     if (viewId === 'dashboard') {
       STATE.tasks = await API.fetchTasks();
+      updateCategoryDatalists();
       STATE.coachingData = await API.fetchAnalytics();
       renderDashboard();
     } else if (viewId === 'planner') {
       STATE.tasks = await API.fetchTasks();
+      updateCategoryDatalists();
       STATE.projects = await API.fetchProjects();
       STATE.reflections = await API.fetchReflections();
       renderWeeklyPlanner();
@@ -208,6 +252,7 @@ function renderDashboard() {
     emptyState.classList.add('hidden');
 
     todayTasks.forEach(task => {
+      ensureCategoryStyles(task.category);
       const activeClass = isTaskCurrentlyActive(task) ? 'active' : '';
       const completedClass = task.completed ? 'completed' : '';
       const timer = STATE.taskTimers[task.id];
@@ -299,18 +344,24 @@ function getWeekOfMonth(date) {
 }
 
 function renderWeeklyPlanner() {
-  // Week banner
-  const now = new Date();
   const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  const weekNum = getWeekOfMonth(now);
-  document.getElementById('week-label').textContent = `Week ${weekNum} of ${months[now.getMonth()]} ${now.getFullYear()}`;
-
-  // Calculate Mon-Sun dates of the current week
-  const day = now.getDay(); // 0=Sun
-  const diffToMon = (day === 0) ? -6 : 1 - day;
-  const monday = new Date(now); monday.setDate(now.getDate() + diffToMon);
-  const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
   const fmt = (d) => `${d.getDate()} ${months[d.getMonth()].slice(0,3)}`;
+
+  // Compute the Monday that starts the week view based on weekOffset
+  const today = new Date();
+  const offsetDate = new Date(today);
+  offsetDate.setDate(today.getDate() + STATE.weekOffset * 7);
+
+  const day = offsetDate.getDay(); // 0=Sun
+  const diffToMon = (day === 0) ? -6 : 1 - day;
+  const monday = new Date(offsetDate);
+  monday.setDate(offsetDate.getDate() + diffToMon);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+
+  // Week banner: week label based on the Monday anchor
+  const weekNum = getWeekOfMonth(monday);
+  document.getElementById('week-label').textContent = `Week ${weekNum} of ${months[monday.getMonth()]} ${monday.getFullYear()}`;
   document.getElementById('week-dates').textContent = `${fmt(monday)} – ${fmt(sunday)}`;
 
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -326,6 +377,7 @@ function renderWeeklyPlanner() {
     header.textContent = dayTasks.length;
 
     dayTasks.forEach(task => {
+      ensureCategoryStyles(task.category);
       const completedClass = task.completed ? 'completed' : '';
       
       const taskHTML = `
@@ -457,6 +509,7 @@ function openDayDetail(dateStr) {
   } else if (dayTasks.length === 0) {
     tasksContainer.innerHTML = `<p class="text-muted" style="margin-top:1rem;">No scheduled blocks for ${dayOfWeek}.</p>`;
   } else {
+    dayTasks.forEach(t => ensureCategoryStyles(t.category));
     tasksContainer.innerHTML = `
       <h4 style="margin: 1.25rem 0 0.75rem; font-size:0.9rem; color: var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">${dayOfWeek} Schedule</h4>
       <div class="day-detail-task-list">
@@ -1462,6 +1515,16 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('cal-next').addEventListener('click', () => {
     calendarDate.setMonth(calendarDate.getMonth() + 1);
     renderCalendar();
+  });
+
+  // Week nav
+  document.getElementById('week-prev').addEventListener('click', () => {
+    STATE.weekOffset--;
+    renderWeeklyPlanner();
+  });
+  document.getElementById('week-next').addEventListener('click', () => {
+    STATE.weekOffset++;
+    renderWeeklyPlanner();
   });
 
   // Modal overlay close

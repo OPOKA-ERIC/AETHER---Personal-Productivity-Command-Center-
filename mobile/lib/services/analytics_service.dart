@@ -1,39 +1,26 @@
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/analytics.dart';
-import 'supabase_service.dart';
+import 'api_service.dart';
 
 class AnalyticsService extends ChangeNotifier {
-  final SupabaseClient _client = SupabaseService().client;
-  AnalyticsSummary? _summary;
+  final ApiService _api = ApiService();
+  AnalyticsData? _data;
   bool _loading = false;
 
-  AnalyticsSummary? get summary => _summary;
+  AnalyticsData? get data => _data;
   bool get loading => _loading;
+
+  AnalyticsSummary? get summary => _data?.summary;
+  List<CoachingTip> get suggestions => _data?.suggestions ?? [];
+  Trends? get trends => _data?.trends;
+  Map<String, CategoryStat> get categoryStats => _data?.categoryStats ?? {};
 
   Future<void> fetchAnalytics() async {
     _loading = true;
     notifyListeners();
     try {
-      final session = _client.auth.currentSession;
-      final token = session?.accessToken;
-      if (token == null) {
-        _loading = false;
-        notifyListeners();
-        return;
-      }
-
-      final response = await http.get(
-        Uri.parse('https://aether-personal-productivity-command.onrender.com/api/analytics'),
-        headers: {'Authorization': 'Bearer $token'},
-      );
-
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
-        _summary = AnalyticsSummary.fromJson(json);
-      }
+      final raw = await _api.getSingle('/analytics');
+      _data = AnalyticsData.fromJson(raw);
     } catch (e) {
       debugPrint('Error fetching analytics: $e');
     }

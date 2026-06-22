@@ -1,10 +1,9 @@
 import 'package:flutter/foundation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/reflection.dart';
-import 'supabase_service.dart';
+import 'api_service.dart';
 
 class ReflectionService extends ChangeNotifier {
-  final SupabaseClient _client = SupabaseService().client;
+  final ApiService _api = ApiService();
   List<Reflection> _reflections = [];
   bool _loading = false;
 
@@ -15,11 +14,8 @@ class ReflectionService extends ChangeNotifier {
     _loading = true;
     notifyListeners();
     try {
-      final data = await _client
-          .from('reflections')
-          .select()
-          .order('date', ascending: false);
-      _reflections = (data as List).map((j) => Reflection.fromJson(j)).toList();
+      final data = await _api.get('/reflections');
+      _reflections = data.map((j) => Reflection.fromJson(j as Map<String, dynamic>)).toList();
     } catch (e) {
       debugPrint('Error fetching reflections: $e');
     }
@@ -27,10 +23,9 @@ class ReflectionService extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<String?> saveReflection(Reflection reflection) async {
+  Future<String?> saveReflection(Map<String, dynamic> data) async {
     try {
-      await _client.from('reflections').upsert(reflection.toJson(),
-          onConflict: 'date,user_id');
+      await _api.post('/reflections', data);
       await fetchReflections();
       return null;
     } catch (e) {

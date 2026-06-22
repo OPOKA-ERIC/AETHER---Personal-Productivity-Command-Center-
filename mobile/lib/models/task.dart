@@ -55,31 +55,4 @@ class Task {
     'actual_minutes_spent': actualMinutesSpent,
     'completed': completed,
   };
-
-  Task copyWith({
-    String? title,
-    String? category,
-    String? dayOfWeek,
-    String? startTime,
-    String? endTime,
-    String? milestoneId,
-    bool? alarmEnabled,
-    int? actualMinutesSpent,
-    bool? completed,
-  }) {
-    return Task(
-      id: id,
-      userId: userId,
-      createdAt: createdAt,
-      title: title ?? this.title,
-      category: category ?? this.category,
-      dayOfWeek: dayOfWeek ?? this.dayOfWeek,
-      startTime: startTime ?? this.startTime,
-      endTime: endTime ?? this.endTime,
-      milestoneId: milestoneId ?? this.milestoneId,
-      alarmEnabled: alarmEnabled ?? this.alarmEnabled,
-      actualMinutesSpent: actualMinutesSpent ?? this.actualMinutesSpent,
-      completed: completed ?? this.completed,
-    );
-  }
 }

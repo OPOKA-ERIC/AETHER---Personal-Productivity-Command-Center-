@@ -21,15 +21,25 @@ class AetherColors {
     'exercise': Color(0xFF10B981),
     'leisure': Color(0xFFF59E0B),
     'urgent': Color(0xFFF43F5E),
-    'personal': Color(0xFFEC4899),
-    'health': Color(0xFF10B981),
-    'reading': Color(0xFF6366F1),
-    'meeting': Color(0xFFF97316),
-    'deep work': Color(0xFF8B5CF6),
+    'personal': Color(0xFFA78BFA),
+    'health': Color(0xFF34D399),
+    'reading': Color(0xFFFB923C),
+    'meeting': Color(0xFF38BDF8),
+    'deep work': Color(0xFFC084FC),
   };
 
-  static Color categoryColor(String cat) =>
-      categoryColors[cat.toLowerCase()] ?? textMuted;
+  static Color categoryColor(String cat) {
+    final color = categoryColors[cat.toLowerCase()];
+    if (color != null) return color;
+    final hash = cat.toLowerCase().hashCode;
+    final palette = [
+      const Color(0xFF06B6D4), const Color(0xFF8B5CF6), const Color(0xFF10B981),
+      const Color(0xFFF59E0B), const Color(0xFFF43F5E), const Color(0xFFA78BFA),
+      const Color(0xFF34D399), const Color(0xFFFB923C), const Color(0xFF38BDF8),
+      const Color(0xFFC084FC), const Color(0xFFEC4899), const Color(0xFF14B8A6),
+    ];
+    return palette[hash.abs() % palette.length];
+  }
 }
 
 class AetherTheme {
@@ -37,6 +47,7 @@ class AetherTheme {
     return ThemeData(
       brightness: Brightness.dark,
       scaffoldBackgroundColor: AetherColors.bg,
+      canvasColor: const Color(0xFF0C091A),
       colorScheme: const ColorScheme.dark(
         primary: AetherColors.purple,
         secondary: AetherColors.cyan,
@@ -44,42 +55,32 @@ class AetherTheme {
       ),
       textTheme: GoogleFonts.interTextTheme().copyWith(
         headlineLarge: GoogleFonts.outfit(
-          fontSize: 28,
-          fontWeight: FontWeight.w600,
-          color: AetherColors.textBright,
-          letterSpacing: -0.02,
+          fontSize: 28, fontWeight: FontWeight.w600,
+          color: AetherColors.textBright, letterSpacing: -0.02,
         ),
         headlineMedium: GoogleFonts.outfit(
-          fontSize: 22,
-          fontWeight: FontWeight.w600,
-          color: AetherColors.textPrimary,
-          letterSpacing: -0.02,
+          fontSize: 22, fontWeight: FontWeight.w600,
+          color: AetherColors.textPrimary, letterSpacing: -0.02,
         ),
         titleLarge: GoogleFonts.outfit(
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
+          fontSize: 18, fontWeight: FontWeight.w600,
           color: AetherColors.textBright,
         ),
         titleMedium: GoogleFonts.inter(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
+          fontSize: 16, fontWeight: FontWeight.w500,
           color: AetherColors.textPrimary,
         ),
         bodyLarge: GoogleFonts.inter(
-          fontSize: 16,
-          color: AetherColors.textPrimary,
+          fontSize: 16, color: AetherColors.textPrimary,
         ),
         bodyMedium: GoogleFonts.inter(
-          fontSize: 14,
-          color: AetherColors.textPrimary,
+          fontSize: 14, color: AetherColors.textPrimary,
         ),
         bodySmall: GoogleFonts.inter(
-          fontSize: 12,
-          color: AetherColors.textMuted,
+          fontSize: 12, color: AetherColors.textMuted,
         ),
         labelLarge: GoogleFonts.inter(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
+          fontSize: 14, fontWeight: FontWeight.w600,
           color: AetherColors.textBright,
         ),
       ),
@@ -88,90 +89,41 @@ class AetherTheme {
         elevation: 0,
         centerTitle: true,
         titleTextStyle: GoogleFonts.outfit(
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
+          fontSize: 20, fontWeight: FontWeight.w600,
           color: AetherColors.textBright,
         ),
       ),
-      navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: AetherColors.glass,
-        indicatorColor: AetherColors.purple.withValues(alpha: 0.3),
-        labelTextStyle: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) {
-            return GoogleFonts.inter(
-              fontSize: 12,
-              color: AetherColors.purple,
-            );
-          }
-          return GoogleFonts.inter(
-            fontSize: 12,
-            color: AetherColors.textMuted,
-          );
-        }),
-        iconTheme: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) {
-            return const IconThemeData(color: AetherColors.purple);
-          }
-          return const IconThemeData(color: AetherColors.textMuted);
-        }),
-      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AetherColors.glass,
+        fillColor: const Color(0x80130E26),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: AetherColors.glassBorder),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: AetherColors.glassBorder),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AetherColors.purple, width: 1.5),
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AetherColors.rose, width: 1.5),
         ),
-        labelStyle: GoogleFonts.inter(color: AetherColors.textMuted),
-        hintStyle: GoogleFonts.inter(color: AetherColors.textMuted),
+        labelStyle: GoogleFonts.inter(color: AetherColors.textMuted, fontSize: 13),
+        hintStyle: GoogleFonts.inter(color: AetherColors.textMuted, fontSize: 13),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AetherColors.purple,
           foregroundColor: AetherColors.textBright,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           elevation: 0,
-          textStyle: GoogleFonts.inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-      dialogTheme: DialogThemeData(
-        backgroundColor: const Color(0xFF1A1530),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: AetherColors.glassBorder),
-        ),
-      ),
-      bottomSheetTheme: const BottomSheetThemeData(
-        backgroundColor: Color(0xFF1A1530),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          textStyle: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
         ),
       ),
       dividerTheme: const DividerThemeData(
         color: AetherColors.glassBorder,
         thickness: 1,
-      ),
-      chipTheme: ChipThemeData(
-        backgroundColor: AetherColors.glass,
-        labelStyle: GoogleFonts.inter(color: AetherColors.textPrimary),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: AetherColors.glassBorder),
-        ),
       ),
     );
   }
