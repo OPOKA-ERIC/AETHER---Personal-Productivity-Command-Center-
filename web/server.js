@@ -325,7 +325,7 @@ app.post('/api/projects/:id/milestones', async (req, res) => {
     if (USE_SUPABASE) {
       const project = await db.get('projects', 'id', req.params.id);
       if (!project) return res.status(404).json({ error: 'Project not found' });
-      const { data: inserted, error } = await supabase.from('milestones').insert({ project_id: Number(req.params.id), title, due_date: due_date || null }).select();
+      const { data: inserted, error } = await supabase.from('milestones').insert({ project_id: req.params.id, title, due_date: due_date || null }).select();
       if (error) throw error;
       data = inserted[0];
     } else {

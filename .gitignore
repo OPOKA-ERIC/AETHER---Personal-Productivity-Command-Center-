@@ -13,3 +13,6 @@ mobile/web/bundle.js
 server_error.txt
 start.bat
 package-lock.json
+
+.env
+cleanup.js
