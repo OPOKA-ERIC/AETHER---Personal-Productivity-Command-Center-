@@ -12,6 +12,21 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const USE_SUPABASE = !!supabase;
 
+// Check if Supabase tasks table has 'date' column
+if (USE_SUPABASE) {
+  (async () => {
+    try {
+      const { error } = await supabase.from('tasks').select('date').limit(0);
+      if (error) {
+        console.warn('\n⚠️  Supabase tasks table is missing the "date" column.');
+        console.warn('   Run this in your Supabase SQL editor:');
+        console.warn('   https://supabase.com/dashboard/project/itrdghrsjztzlgtnrmds/sql/new');
+        console.warn('   SQL: ALTER TABLE tasks ADD COLUMN IF NOT EXISTS date TEXT;\n');
+      }
+    } catch (_) {}
+  })();
+}
+
 // ---- Database abstraction layer ----
 const db = {};
 
@@ -194,12 +209,23 @@ app.post('/api/tasks', async (req, res) => {
         milestone_id: milestone_id || null,
         alarm_enabled: alarm_enabled !== undefined ? !!alarm_enabled : true,
         completed: !!completed,
-        actual_minutes_spent: actual_minutes_spent || 0,
-        date: date || null
+        actual_minutes_spent: actual_minutes_spent || 0
       };
+      if (date) payload.date = date;
       const { data: inserted, error } = await supabase.from('tasks').insert(payload).select();
-      if (error) throw error;
-      data = normalizeTask(inserted[0]);
+      if (error) {
+        // If date column doesn't exist, retry without it
+        if (error.message?.includes('date') && error.code === 'PGRST204') {
+          delete payload.date;
+          const { data: retry, error: retryErr } = await supabase.from('tasks').insert(payload).select();
+          if (retryErr) throw retryErr;
+          data = normalizeTask(retry[0]);
+        } else {
+          throw error;
+        }
+      } else {
+        data = normalizeTask(inserted[0]);
+      }
     } else {
       const result = await db.run(
         'INSERT INTO tasks (title, category, day_of_week, start_time, end_time, milestone_id, alarm_enabled, completed, actual_minutes_spent, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
@@ -225,7 +251,17 @@ app.put('/api/tasks/:id', async (req, res) => {
         }
       });
       if (Object.keys(updates).length === 0) return res.status(400).json({ error: 'No fields to update' });
-      data = await db.update('tasks', req.params.id, updates);
+      try {
+        data = await db.update('tasks', req.params.id, updates);
+      } catch (updateErr) {
+        // If date column missing, retry without date field
+        if (updateErr.message?.includes('date') && updates.date) {
+          delete updates.date;
+          data = await db.update('tasks', req.params.id, updates);
+        } else {
+          throw updateErr;
+        }
+      }
       if (data) data = normalizeTask(data);
     } else {
       const fields = [];
