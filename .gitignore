@@ -5,4 +5,11 @@ server_output.txt
 # Mobile
 mobile/node_modules/
 
-# IDE.idea/
+.idea/
+mobile/android/.kotlin/
+mobile/android/build/
+mobile/web/bundle.js
+*.log
+server_error.txt
+start.bat
+package-lock.json
