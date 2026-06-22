@@ -66,17 +66,21 @@ class _PlannerScreenState extends State<PlannerScreen> {
     return ((date.difference(firstDay).inDays + firstDay.weekday) / 7).ceil();
   }
 
-  String _weekLabel(DateTime now) {
-    final months = ['January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'];
-    final wn = _getWeekOfMonth(now);
-    return 'Week $wn of ${months[now.month - 1]} ${now.year}';
+  DateTime _mondayOf(DateTime date) {
+    final diff = date.weekday - 1;
+    return date.subtract(Duration(days: diff));
   }
 
-  String _weekDates(DateTime now) {
-    final day = now.weekday; // 1=Mon
-    final diff = day - 1;
-    final mon = now.subtract(Duration(days: diff));
+  String _weekLabel(DateTime date) {
+    final monday = _mondayOf(date);
+    final months = ['January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'];
+    final wn = _getWeekOfMonth(monday);
+    return 'Week $wn of ${months[monday.month - 1]} ${monday.year}';
+  }
+
+  String _weekDates(DateTime date) {
+    final mon = _mondayOf(date);
     final sun = mon.add(const Duration(days: 6));
     final fmt = DateFormat('d MMM');
     return '${fmt.format(mon)} – ${fmt.format(sun)}';
@@ -520,18 +524,68 @@ class _PlannerScreenState extends State<PlannerScreen> {
                   decoration: const InputDecoration(hintText: 'Task title...'),
                 ),
                 const SizedBox(height: 10),
-                DropdownButtonFormField<String>(
-                  initialValue: category,
-                  decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
-                  items: categories.map((c) => DropdownMenuItem(
-                    value: c,
-                    child: Row(children: [
-                      Container(width: 8, height: 8, decoration: BoxDecoration(color: AetherColors.categoryColor(c), shape: BoxShape.circle)),
-                      const SizedBox(width: 6),
-                      Text(c[0].toUpperCase() + c.substring(1)),
-                    ]),
-                  )).toList(),
-                  onChanged: (v) => setInnerState(() => category = v!),
+                Autocomplete<String>(
+                  optionsBuilder: (val) {
+                    if (val.text.isEmpty) return categories;
+                    return categories.where((c) => c.toLowerCase().contains(val.text.toLowerCase()));
+                  },
+                  initialValue: TextEditingValue(text: category),
+                  onSelected: (v) => category = v,
+                  fieldViewBuilder: (ctx, ctrl, focusNode, onSubmit) {
+                    ctrl.text = category;
+                    return TextField(
+                      controller: ctrl,
+                      focusNode: focusNode,
+                      style: const TextStyle(fontSize: 13, color: AetherColors.textBright),
+                      decoration: InputDecoration(
+                        labelText: 'Category',
+                        hintText: 'e.g. coding, study...',
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        suffixIcon: Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: Container(
+                            width: 12, height: 12, margin: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: AetherColors.categoryColor(ctrl.text),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                      ),
+                      onChanged: (v) => category = v,
+                    );
+                  },
+                  optionsViewBuilder: (ctx, onSelected, options) => Align(
+                    alignment: Alignment.topLeft,
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 4),
+                      constraints: const BoxConstraints(maxHeight: 200, maxWidth: 200),
+                      decoration: BoxDecoration(
+                        color: Color(0xFF0C091A),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AetherColors.glassBorder),
+                      ),
+                      child: ListView.builder(
+                        padding: EdgeInsets.zero,
+                        itemCount: options.length,
+                        itemBuilder: (ctx, i) {
+                          final cat = options.elementAt(i);
+                          return InkWell(
+                            onTap: () => onSelected(cat),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              child: Row(children: [
+                                Container(width: 8, height: 8, decoration: BoxDecoration(color: AetherColors.categoryColor(cat), shape: BoxShape.circle)),
+                                const SizedBox(width: 8),
+                                Text(cat[0].toUpperCase() + cat.substring(1),
+                                    style: const TextStyle(color: AetherColors.textBright, fontSize: 13)),
+                              ]),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 10),
                 Row(
