@@ -49,11 +49,27 @@ async function initAuth() {
     return;
   }
 
-  // If user logged out, show the auth overlay and wait
+  // If user clicked logout, show the auth overlay and wait
   if (localStorage.getItem('aether_logged_out')) {
     document.getElementById('auth-overlay').classList.add('active');
     return;
   }
+
+  // Check for existing Supabase session (from OAuth redirect or persistent login)
+  try {
+    const { data: { session } } = await _supabase.auth.getSession();
+    if (session?.user) {
+      const meta = session.user.user_metadata || {};
+      const name = meta.display_name || meta.full_name || session.user.email?.split('@')[0] || 'User';
+      localStorage.removeItem('aether_logged_out');
+      STATE.token = session.access_token;
+      STATE.user = { id: session.user.id, email: session.user.email, user_metadata: { display_name: name } };
+      updateSidebarUser(STATE.user);
+      document.getElementById('auth-overlay').classList.remove('active');
+      bootApp();
+      return;
+    }
+  } catch (_) {}
 
   // Single-user mode (SQLite) — skip auth
   STATE.token = 'local-mode';
@@ -77,6 +93,15 @@ document.addEventListener('click', (e) => {
   if (tab) { hideAuthErrors(); showForm(tab.dataset.tab); }
 });
 
+function bootFromAuth(name, email) {
+  localStorage.removeItem('aether_logged_out');
+  STATE.token = 'local-mode';
+  STATE.user = { id: 1, email: email || 'local@aether.app', user_metadata: { display_name: name || 'You' } };
+  updateSidebarUser(STATE.user);
+  document.getElementById('auth-overlay').classList.remove('active');
+  bootApp();
+}
+
 document.getElementById('login-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   hideAuthErrors();
@@ -84,7 +109,11 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
     email: document.getElementById('login-email').value,
     password: document.getElementById('login-password').value
   });
-  if (error) showAuthMsg('login-error', error.message, 'auth-error');
+  if (error) {
+    showAuthMsg('login-error', error.message, 'auth-error');
+  } else {
+    bootFromAuth(document.getElementById('login-email').value.split('@')[0], document.getElementById('login-email').value);
+  }
 });
 
 document.getElementById('register-form').addEventListener('submit', async (e) => {
@@ -96,15 +125,17 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
     showAuthMsg('register-error', 'Passwords do not match', 'auth-error');
     return;
   }
+  const name = document.getElementById('register-name').value.trim();
+  const email = document.getElementById('register-email').value.trim();
   const { error } = await _supabase.auth.signUp({
-    email: document.getElementById('register-email').value,
+    email,
     password,
-    options: { data: { display_name: document.getElementById('register-name').value } }
+    options: { data: { display_name: name } }
   });
   if (error) {
     showAuthMsg('register-error', error.message, 'auth-error');
   } else {
-    showAuthMsg('register-error', 'Account created! If email confirmation is on, check your inbox.', 'auth-success');
+    bootFromAuth(name || email.split('@')[0], email);
   }
 });
 
@@ -168,7 +199,12 @@ document.getElementById('google-login-btn').addEventListener('click', async () =
     provider: 'google',
     options: { redirectTo: window.location.origin }
   });
-  if (error) showAuthMsg('login-error', error.message, 'auth-error');
+  if (error) {
+    showAuthMsg('login-error', error.message, 'auth-error');
+  } else {
+    // OAuth will redirect; on return the page reloads and initAuth() runs.
+    // If Supabase session exists, it should proceed. Otherwise fall through to guest.
+  }
 });
 
 document.getElementById('guest-login-btn').addEventListener('click', () => {
