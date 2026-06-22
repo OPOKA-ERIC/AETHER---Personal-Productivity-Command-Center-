@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../theme/aether_theme.dart';
+import 'home_shell.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -304,6 +305,12 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       _loginEmailCtrl.text.trim(), _loginPassCtrl.text,
     );
     if (mounted) setState(() { _loginLoading = false; _loginError = err; });
+    if (err == null && mounted) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const HomeShell()),
+        (route) => false,
+      );
+    }
   }
 
   Future<void> _handleRegister() async {
@@ -320,5 +327,11 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       _regNameCtrl.text.trim(), _regEmailCtrl.text.trim(), _regPassCtrl.text,
     );
     if (mounted) setState(() { _regLoading = false; _regError = err; });
+    if (err == null && mounted) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const HomeShell()),
+        (route) => false,
+      );
+    }
   }
 }
