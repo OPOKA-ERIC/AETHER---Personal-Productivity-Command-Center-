@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const sqlite3 = require('sqlite3');
 
 const app = express();
@@ -12,7 +13,54 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 function getDB() {
-  return new sqlite3.Database(DB_PATH, sqlite3.OPEN_READWRITE);
+  return new sqlite3.Database(DB_PATH, sqlite3.OPEN_CREATE | sqlite3.OPEN_READWRITE);
+}
+
+function initDB() {
+  const db = getDB();
+  db.serialize(() => {
+    db.run(`CREATE TABLE IF NOT EXISTS projects (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      description TEXT,
+      status TEXT DEFAULT 'active',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+    db.run(`CREATE TABLE IF NOT EXISTS milestones (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      due_date TEXT,
+      completed INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+    db.run(`CREATE TABLE IF NOT EXISTS tasks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      category TEXT NOT NULL,
+      day_of_week TEXT NOT NULL,
+      start_time TEXT NOT NULL,
+      end_time TEXT NOT NULL,
+      milestone_id INTEGER REFERENCES milestones(id) ON DELETE SET NULL,
+      alarm_enabled INTEGER DEFAULT 1,
+      actual_minutes_spent INTEGER DEFAULT 0,
+      completed INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+    db.run(`CREATE TABLE IF NOT EXISTS reflections (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      date TEXT NOT NULL UNIQUE,
+      adherence_score INTEGER NOT NULL,
+      focus_score INTEGER NOT NULL,
+      energy_score INTEGER NOT NULL,
+      notes_success TEXT,
+      notes_struggles TEXT,
+      notes_improvements TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+  });
+  db.close();
+  console.log(`Database ready at ${DB_PATH}`);
 }
 
 function run(sql, params = []) {
@@ -337,6 +385,8 @@ app.get('/api/analytics', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
+initDB();
+
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Aether API Server running on port ${PORT}`);
 });
