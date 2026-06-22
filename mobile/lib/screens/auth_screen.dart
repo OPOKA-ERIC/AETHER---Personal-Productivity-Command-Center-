@@ -45,11 +45,6 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     super.dispose();
   }
 
-  void _enterGuestMode() {
-    context.read<AuthService>().enterGuestMode();
-    Navigator.of(context).pushReplacementNamed('/home');
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -227,28 +222,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
             ),
           ),
 
-          const SizedBox(height: 12),
-
-          // Continue as Guest
-          SizedBox(
-            height: 44,
-            child: OutlinedButton(
-              onPressed: _enterGuestMode,
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: AetherColors.glassBorder),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.person_outline, size: 16, color: AetherColors.textMuted),
-                  const SizedBox(width: 6),
-                  Text('Continue as Guest', style: TextStyle(fontSize: 13, color: AetherColors.textMuted)),
-                ],
-              ),
-            ),
-          ),
-          ],
+        ],
         ),
         ),
       );

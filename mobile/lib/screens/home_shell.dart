@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../theme/aether_theme.dart';
+import 'auth_screen.dart';
 import 'dashboard_screen.dart';
 import 'planner_screen.dart';
 import 'projects_screen.dart';
@@ -300,7 +301,16 @@ class _HomeShellState extends State<HomeShell> {
                     ),
                   ),
                   GestureDetector(
-                    onTap: () => auth.signOut(),
+                    onTap: () {
+                      auth.signOut().then((_) {
+                        if (mounted) {
+                          Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(builder: (_) => const AuthScreen()),
+                            (route) => false,
+                          );
+                        }
+                      });
+                    },
                     child: const Icon(Icons.logout, color: AetherColors.textMuted, size: 18),
                   ),
                 ],
