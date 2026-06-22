@@ -546,6 +546,21 @@ class _PlannerScreenState extends State<PlannerScreen> {
                   ],
                 ),
                 const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0x0AFFFFFF),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0x1AFFFFFF)),
+                  ),
+                  child: Row(children: [
+                    const Icon(Icons.calendar_today, color: AetherColors.purple, size: 14),
+                    const SizedBox(width: 8),
+                    Text(_dateForDay(day),
+                        style: const TextStyle(fontSize: 13, color: AetherColors.textMuted, fontFamily: 'monospace')),
+                  ]),
+                ),
+                const SizedBox(height: 10),
                 Row(
                   children: [
                     const Spacer(),
