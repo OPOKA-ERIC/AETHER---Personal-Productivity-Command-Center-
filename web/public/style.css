@@ -168,6 +168,7 @@ h1, h2, h3, h4, h5, h6 {
   position: sticky;
   top: 0;
   z-index: 10;
+  overflow: hidden;
 }
 
 .brand {
@@ -205,6 +206,8 @@ h1, h2, h3, h4, h5, h6 {
   flex-direction: column;
   gap: 0.5rem;
   flex-grow: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 .nav-item {
   display: flex;
@@ -247,6 +250,7 @@ h1, h2, h3, h4, h5, h6 {
 .sidebar-footer {
   padding-top: 1.5rem;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
+  flex-shrink: 0;
 }
 .user-profile {
   display: flex;

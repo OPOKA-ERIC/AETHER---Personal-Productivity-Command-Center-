@@ -146,7 +146,14 @@ document.getElementById('reset-form').addEventListener('submit', async (e) => {
 });
 
 document.getElementById('logout-btn').addEventListener('click', async () => {
-  await _supabase.auth.signOut();
+  try {
+    await _supabase.auth.signOut();
+  } catch (err) {
+    console.warn('Supabase signOut (non-fatal in local mode):', err);
+  }
+  STATE.token = null;
+  STATE.user = null;
+  location.reload();
 });
 
 document.getElementById('google-login-btn').addEventListener('click', async () => {
