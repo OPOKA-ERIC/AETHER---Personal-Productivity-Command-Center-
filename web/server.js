@@ -12,6 +12,29 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const USE_SUPABASE = !!supabase;
 
+// ---- Authentication middleware ----
+async function requireAuth(req, res, next) {
+  if (!USE_SUPABASE) {
+    req.userId = 1;
+    return next();
+  }
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Missing or invalid Authorization header' });
+  }
+  const token = authHeader.slice(7);
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error || !user) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+    req.userId = user.id;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: 'Authentication failed' });
+  }
+}
+
 // Check if Supabase tasks table has 'date' column
 if (USE_SUPABASE) {
   (async () => {
@@ -47,6 +70,7 @@ if (!USE_SUPABASE) {
         title TEXT NOT NULL,
         description TEXT,
         status TEXT DEFAULT 'active',
+        user_id TEXT DEFAULT '1',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )`);
       d.run(`CREATE TABLE IF NOT EXISTS milestones (
@@ -55,6 +79,7 @@ if (!USE_SUPABASE) {
         title TEXT NOT NULL,
         due_date TEXT,
         completed INTEGER DEFAULT 0,
+        user_id TEXT DEFAULT '1',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )`);
       d.run(`CREATE TABLE IF NOT EXISTS tasks (
@@ -69,9 +94,13 @@ if (!USE_SUPABASE) {
         actual_minutes_spent INTEGER DEFAULT 0,
         completed INTEGER DEFAULT 0,
         date TEXT,
+        user_id TEXT DEFAULT '1',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )`);
       d.run(`ALTER TABLE tasks ADD COLUMN date TEXT`, () => {});
+      d.run(`ALTER TABLE tasks ADD COLUMN user_id TEXT DEFAULT '1'`, () => {});
+      d.run(`ALTER TABLE projects ADD COLUMN user_id TEXT DEFAULT '1'`, () => {});
+      d.run(`ALTER TABLE milestones ADD COLUMN user_id TEXT DEFAULT '1'`, () => {});
       d.run(`CREATE TABLE IF NOT EXISTS reflections (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         date TEXT NOT NULL UNIQUE,
@@ -81,8 +110,10 @@ if (!USE_SUPABASE) {
         notes_success TEXT,
         notes_struggles TEXT,
         notes_improvements TEXT,
+        user_id TEXT DEFAULT '1',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )`);
+      d.run(`ALTER TABLE reflections ADD COLUMN user_id TEXT DEFAULT '1'`, () => {});
     });
     d.close();
     console.log(`SQLite ready at ${DB_PATH}`);
@@ -176,6 +207,21 @@ if (!USE_SUPABASE) {
     if (error) throw error;
   };
 
+  db.removeWhereAll = async function removeWhereAll(table, field, value) {
+    const { data: all } = await supabase.from(table).select('id').eq(field, value);
+    if (all && all.length > 0) {
+      const ids = all.map(r => r.id);
+      const { error } = await supabase.from(table).delete().in('id', ids);
+      if (error) throw error;
+    }
+  };
+
+  db.getWhere = async function getWhere(table, field, value) {
+    const { data, error } = await supabase.from(table).select('*').eq(field, value).maybeSingle();
+    if (error) throw error;
+    return data;
+  };
+
   console.log('Using Supabase backend');
 }
 
@@ -183,13 +229,18 @@ if (!USE_SUPABASE) {
 // TASKS CRUD
 // ==========================================
 
-app.get('/api/tasks', async (req, res) => {
+app.get('/api/tasks', requireAuth, async (req, res) => {
   try {
     if (USE_SUPABASE) {
-      const data = await db.all('tasks', 'start_time ASC');
-      res.json(data.map(normalizeTask));
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('user_id', req.userId)
+        .order('start_time', { ascending: true });
+      if (error) throw error;
+      res.json((data || []).map(normalizeTask));
     } else {
-      const data = await db.all('SELECT * FROM tasks ORDER BY start_time ASC');
+      const data = await db.all('SELECT * FROM tasks WHERE user_id = ? ORDER BY start_time ASC', [req.userId]);
       res.json(data);
     }
   } catch (err) {
@@ -197,7 +248,7 @@ app.get('/api/tasks', async (req, res) => {
   }
 });
 
-app.post('/api/tasks', async (req, res) => {
+app.post('/api/tasks', requireAuth, async (req, res) => {
   const { title, category, day_of_week, start_time, end_time, milestone_id, alarm_enabled, completed, actual_minutes_spent, date } = req.body;
   if (!title || !category || !day_of_week || !start_time || !end_time)
     return res.status(400).json({ error: 'Please provide all required task fields.' });
@@ -209,12 +260,12 @@ app.post('/api/tasks', async (req, res) => {
         milestone_id: milestone_id || null,
         alarm_enabled: alarm_enabled !== undefined ? !!alarm_enabled : true,
         completed: !!completed,
-        actual_minutes_spent: actual_minutes_spent || 0
+        actual_minutes_spent: actual_minutes_spent || 0,
+        user_id: req.userId
       };
       if (date) payload.date = date;
       const { data: inserted, error } = await supabase.from('tasks').insert(payload).select();
       if (error) {
-        // If date column doesn't exist, retry without it
         if (error.message?.includes('date') && error.code === 'PGRST204') {
           delete payload.date;
           const { data: retry, error: retryErr } = await supabase.from('tasks').insert(payload).select();
@@ -228,8 +279,8 @@ app.post('/api/tasks', async (req, res) => {
       }
     } else {
       const result = await db.run(
-        'INSERT INTO tasks (title, category, day_of_week, start_time, end_time, milestone_id, alarm_enabled, completed, actual_minutes_spent, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [title, category, day_of_week, start_time, end_time, milestone_id || null, alarm_enabled !== undefined ? (alarm_enabled ? 1 : 0) : 1, completed ? 1 : 0, actual_minutes_spent || 0, date || null]
+        'INSERT INTO tasks (title, category, day_of_week, start_time, end_time, milestone_id, alarm_enabled, completed, actual_minutes_spent, date, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [title, category, day_of_week, start_time, end_time, milestone_id || null, alarm_enabled !== undefined ? (alarm_enabled ? 1 : 0) : 1, completed ? 1 : 0, actual_minutes_spent || 0, date || null, req.userId]
       );
       data = await db.get('SELECT * FROM tasks WHERE id = ?', [result.lastID]);
     }
@@ -239,7 +290,7 @@ app.post('/api/tasks', async (req, res) => {
   }
 });
 
-app.put('/api/tasks/:id', async (req, res) => {
+app.put('/api/tasks/:id', requireAuth, async (req, res) => {
   try {
     let data;
     if (USE_SUPABASE) {
@@ -251,13 +302,29 @@ app.put('/api/tasks/:id', async (req, res) => {
         }
       });
       if (Object.keys(updates).length === 0) return res.status(400).json({ error: 'No fields to update' });
+      updates.user_id = req.userId;
       try {
-        data = await db.update('tasks', req.params.id, updates);
+        const { data: updated, error } = await supabase
+          .from('tasks')
+          .update(updates)
+          .eq('id', req.params.id)
+          .eq('user_id', req.userId)
+          .select();
+        if (error) throw error;
+        data = updated?.[0];
+        if (!data) return res.status(404).json({ error: 'Task not found or access denied' });
       } catch (updateErr) {
-        // If date column missing, retry without date field
         if (updateErr.message?.includes('date') && updates.date) {
           delete updates.date;
-          data = await db.update('tasks', req.params.id, updates);
+          const { data: updated, error } = await supabase
+            .from('tasks')
+            .update(updates)
+            .eq('id', req.params.id)
+            .eq('user_id', req.userId)
+            .select();
+          if (error) throw error;
+          data = updated?.[0];
+          if (!data) return res.status(404).json({ error: 'Task not found or access denied' });
         } else {
           throw updateErr;
         }
@@ -274,9 +341,10 @@ app.put('/api/tasks/:id', async (req, res) => {
         }
       });
       if (fields.length === 0) return res.status(400).json({ error: 'No fields to update' });
-      values.push(req.params.id);
-      await db.run('UPDATE tasks SET ' + fields.join(', ') + ' WHERE id = ?', values);
-      data = await db.get('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
+      values.push(req.params.id, req.userId);
+      await db.run('UPDATE tasks SET ' + fields.join(', ') + ' WHERE id = ? AND user_id = ?', values);
+      data = await db.get('SELECT * FROM tasks WHERE id = ? AND user_id = ?', [req.params.id, req.userId]);
+      if (!data) return res.status(404).json({ error: 'Task not found or access denied' });
     }
     res.json(data);
   } catch (err) {
@@ -284,12 +352,21 @@ app.put('/api/tasks/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/tasks/:id', async (req, res) => {
+app.delete('/api/tasks/:id', requireAuth, async (req, res) => {
   try {
     if (USE_SUPABASE) {
+      const { data: existing } = await supabase
+        .from('tasks')
+        .select('id')
+        .eq('id', req.params.id)
+        .eq('user_id', req.userId)
+        .maybeSingle();
+      if (!existing) return res.status(404).json({ error: 'Task not found or access denied' });
       await db.remove('tasks', req.params.id);
     } else {
-      await db.run('DELETE FROM tasks WHERE id = ?', [req.params.id]);
+      const existing = await db.get('SELECT id FROM tasks WHERE id = ? AND user_id = ?', [req.params.id, req.userId]);
+      if (!existing) return res.status(404).json({ error: 'Task not found or access denied' });
+      await db.run('DELETE FROM tasks WHERE id = ? AND user_id = ?', [req.params.id, req.userId]);
     }
     res.json({ message: 'Task deleted successfully', id: req.params.id });
   } catch (err) {
@@ -301,18 +378,30 @@ app.delete('/api/tasks/:id', async (req, res) => {
 // PROJECTS & MILESTONES CRUD
 // ==========================================
 
-app.get('/api/projects', async (req, res) => {
+app.get('/api/projects', requireAuth, async (req, res) => {
   try {
     let projects;
     if (USE_SUPABASE) {
-      projects = await db.all('projects', 'created_at DESC');
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('user_id', req.userId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      projects = data || [];
       for (const p of projects) {
-        p.milestones = await db.allWhere('milestones', 'project_id', p.id, 'created_at ASC');
+        const { data: ms } = await supabase
+          .from('milestones')
+          .select('*')
+          .eq('project_id', p.id)
+          .eq('user_id', req.userId)
+          .order('created_at', { ascending: true });
+        p.milestones = ms || [];
       }
     } else {
-      projects = await db.all('SELECT * FROM projects ORDER BY created_at DESC');
+      projects = await db.all('SELECT * FROM projects WHERE user_id = ? ORDER BY created_at DESC', [req.userId]);
       for (const p of projects) {
-        p.milestones = await db.all('SELECT * FROM milestones WHERE project_id = ? ORDER BY created_at ASC', [p.id]);
+        p.milestones = await db.all('SELECT * FROM milestones WHERE project_id = ? AND user_id = ? ORDER BY created_at ASC', [p.id, req.userId]);
       }
     }
     res.json(projects);
@@ -321,17 +410,20 @@ app.get('/api/projects', async (req, res) => {
   }
 });
 
-app.post('/api/projects', async (req, res) => {
+app.post('/api/projects', requireAuth, async (req, res) => {
   const { title, description } = req.body;
   if (!title) return res.status(400).json({ error: 'Project title is required' });
   try {
     let data;
     if (USE_SUPABASE) {
-      const { data: inserted, error } = await supabase.from('projects').insert({ title, description: description || '' }).select();
+      const { data: inserted, error } = await supabase
+        .from('projects')
+        .insert({ title, description: description || '', user_id: req.userId })
+        .select();
       if (error) throw error;
       data = inserted[0];
     } else {
-      const result = await db.run('INSERT INTO projects (title, description) VALUES (?, ?)', [title, description || '']);
+      const result = await db.run('INSERT INTO projects (title, description, user_id) VALUES (?, ?, ?)', [title, description || '', req.userId]);
       data = await db.get('SELECT * FROM projects WHERE id = ?', [result.lastID]);
     }
     data.milestones = [];
@@ -341,14 +433,23 @@ app.post('/api/projects', async (req, res) => {
   }
 });
 
-app.delete('/api/projects/:id', async (req, res) => {
+app.delete('/api/projects/:id', requireAuth, async (req, res) => {
   try {
     if (USE_SUPABASE) {
-      await db.removeWhere('milestones', 'project_id', req.params.id);
+      const { data: existing } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('id', req.params.id)
+        .eq('user_id', req.userId)
+        .maybeSingle();
+      if (!existing) return res.status(404).json({ error: 'Project not found or access denied' });
+      await db.removeWhereAll('milestones', 'project_id', req.params.id);
       await db.remove('projects', req.params.id);
     } else {
-      await db.run('DELETE FROM milestones WHERE project_id = ?', [req.params.id]);
-      await db.run('DELETE FROM projects WHERE id = ?', [req.params.id]);
+      const existing = await db.get('SELECT id FROM projects WHERE id = ? AND user_id = ?', [req.params.id, req.userId]);
+      if (!existing) return res.status(404).json({ error: 'Project not found or access denied' });
+      await db.run('DELETE FROM milestones WHERE project_id = ? AND user_id = ?', [req.params.id, req.userId]);
+      await db.run('DELETE FROM projects WHERE id = ? AND user_id = ?', [req.params.id, req.userId]);
     }
     res.json({ message: 'Project deleted', id: req.params.id });
   } catch (err) {
@@ -356,21 +457,24 @@ app.delete('/api/projects/:id', async (req, res) => {
   }
 });
 
-app.post('/api/projects/:id/milestones', async (req, res) => {
+app.post('/api/projects/:id/milestones', requireAuth, async (req, res) => {
   const { title, due_date } = req.body;
   if (!title) return res.status(400).json({ error: 'Milestone title is required' });
   try {
     let data;
     if (USE_SUPABASE) {
-      const project = await db.get('projects', 'id', req.params.id);
-      if (!project) return res.status(404).json({ error: 'Project not found' });
-      const { data: inserted, error } = await supabase.from('milestones').insert({ project_id: req.params.id, title, due_date: due_date || null }).select();
+      const project = await db.getWhere('projects', 'id', req.params.id);
+      if (!project || project.user_id !== req.userId) return res.status(404).json({ error: 'Project not found or access denied' });
+      const { data: inserted, error } = await supabase
+        .from('milestones')
+        .insert({ project_id: req.params.id, title, due_date: due_date || null, user_id: req.userId })
+        .select();
       if (error) throw error;
       data = inserted[0];
     } else {
-      const project = await db.get('SELECT id FROM projects WHERE id = ?', [req.params.id]);
-      if (!project) return res.status(404).json({ error: 'Project not found' });
-      const result = await db.run('INSERT INTO milestones (project_id, title, due_date) VALUES (?, ?, ?)', [req.params.id, title, due_date || null]);
+      const project = await db.get('SELECT id, user_id FROM projects WHERE id = ?', [req.params.id]);
+      if (!project || project.user_id != req.userId) return res.status(404).json({ error: 'Project not found or access denied' });
+      const result = await db.run('INSERT INTO milestones (project_id, title, due_date, user_id) VALUES (?, ?, ?, ?)', [req.params.id, title, due_date || null, req.userId]);
       data = await db.get('SELECT * FROM milestones WHERE id = ?', [result.lastID]);
     }
     res.status(201).json(data);
@@ -379,7 +483,7 @@ app.post('/api/projects/:id/milestones', async (req, res) => {
   }
 });
 
-app.put('/api/milestones/:id', async (req, res) => {
+app.put('/api/milestones/:id', requireAuth, async (req, res) => {
   try {
     let data;
     if (USE_SUPABASE) {
@@ -391,7 +495,16 @@ app.put('/api/milestones/:id', async (req, res) => {
         }
       });
       if (Object.keys(updates).length === 0) return res.status(400).json({ error: 'No fields to update' });
-      data = await db.update('milestones', req.params.id, updates);
+      updates.user_id = req.userId;
+      const { data: updated, error } = await supabase
+        .from('milestones')
+        .update(updates)
+        .eq('id', req.params.id)
+        .eq('user_id', req.userId)
+        .select();
+      if (error) throw error;
+      data = updated?.[0];
+      if (!data) return res.status(404).json({ error: 'Milestone not found or access denied' });
     } else {
       const fields = [];
       const values = [];
@@ -403,9 +516,10 @@ app.put('/api/milestones/:id', async (req, res) => {
         }
       });
       if (fields.length === 0) return res.status(400).json({ error: 'No fields to update' });
-      values.push(req.params.id);
-      await db.run('UPDATE milestones SET ' + fields.join(', ') + ' WHERE id = ?', values);
-      data = await db.get('SELECT * FROM milestones WHERE id = ?', [req.params.id]);
+      values.push(req.params.id, req.userId);
+      await db.run('UPDATE milestones SET ' + fields.join(', ') + ' WHERE id = ? AND user_id = ?', values);
+      data = await db.get('SELECT * FROM milestones WHERE id = ? AND user_id = ?', [req.params.id, req.userId]);
+      if (!data) return res.status(404).json({ error: 'Milestone not found or access denied' });
     }
     res.json(data);
   } catch (err) {
@@ -413,12 +527,21 @@ app.put('/api/milestones/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/milestones/:id', async (req, res) => {
+app.delete('/api/milestones/:id', requireAuth, async (req, res) => {
   try {
     if (USE_SUPABASE) {
+      const { data: existing } = await supabase
+        .from('milestones')
+        .select('id')
+        .eq('id', req.params.id)
+        .eq('user_id', req.userId)
+        .maybeSingle();
+      if (!existing) return res.status(404).json({ error: 'Milestone not found or access denied' });
       await db.remove('milestones', req.params.id);
     } else {
-      await db.run('DELETE FROM milestones WHERE id = ?', [req.params.id]);
+      const existing = await db.get('SELECT id FROM milestones WHERE id = ? AND user_id = ?', [req.params.id, req.userId]);
+      if (!existing) return res.status(404).json({ error: 'Milestone not found or access denied' });
+      await db.run('DELETE FROM milestones WHERE id = ? AND user_id = ?', [req.params.id, req.userId]);
     }
     res.json({ message: 'Milestone deleted', id: req.params.id });
   } catch (err) {
@@ -430,50 +553,73 @@ app.delete('/api/milestones/:id', async (req, res) => {
 // REFLECTIONS CRUD
 // ==========================================
 
-app.get('/api/reflections', async (req, res) => {
+app.get('/api/reflections', requireAuth, async (req, res) => {
   try {
-    const data = USE_SUPABASE ? await db.all('reflections', 'date DESC') : await db.all('SELECT * FROM reflections ORDER BY date DESC');
+    let data;
+    if (USE_SUPABASE) {
+      const { data: reflections, error } = await supabase
+        .from('reflections')
+        .select('*')
+        .eq('user_id', req.userId)
+        .order('date', { ascending: false });
+      if (error) throw error;
+      data = reflections || [];
+    } else {
+      data = await db.all('SELECT * FROM reflections WHERE user_id = ? ORDER BY date DESC', [req.userId]);
+    }
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post('/api/reflections', async (req, res) => {
+app.post('/api/reflections', requireAuth, async (req, res) => {
   const { date, adherence_score, focus_score, energy_score, notes_success, notes_struggles, notes_improvements } = req.body;
   if (!date || adherence_score === undefined || focus_score === undefined || energy_score === undefined)
     return res.status(400).json({ error: 'Please provide date, adherence, focus and energy scores.' });
   try {
     let data;
     if (USE_SUPABASE) {
-      const existing = await db.get('reflections', 'date', date);
-      if (existing) {
-        data = await db.update('reflections', existing.id, {
-          adherence_score, focus_score, energy_score,
-          notes_success: notes_success || '', notes_struggles: notes_struggles || '', notes_improvements: notes_improvements || ''
-        });
+      const existing = await db.getWhere('reflections', 'date', date);
+      if (existing && existing.user_id === req.userId) {
+        const { data: updated, error } = await supabase
+          .from('reflections')
+          .update({
+            adherence_score, focus_score, energy_score,
+            notes_success: notes_success || '', notes_struggles: notes_struggles || '', notes_improvements: notes_improvements || '',
+            user_id: req.userId
+          })
+          .eq('id', existing.id)
+          .eq('user_id', req.userId)
+          .select();
+        if (error) throw error;
+        data = updated?.[0];
+      } else if (existing && existing.user_id !== req.userId) {
+        return res.status(403).json({ error: 'Access denied' });
       } else {
         const { data: inserted, error } = await supabase.from('reflections').insert({
           date, adherence_score, focus_score, energy_score,
-          notes_success: notes_success || '', notes_struggles: notes_struggles || '', notes_improvements: notes_improvements || ''
+          notes_success: notes_success || '', notes_struggles: notes_struggles || '', notes_improvements: notes_improvements || '',
+          user_id: req.userId
         }).select();
         if (error) throw error;
         data = inserted[0];
       }
     } else {
-      const existing = await db.get('SELECT id FROM reflections WHERE date = ?', [date]);
+      const existing = await db.get('SELECT id, user_id FROM reflections WHERE date = ?', [date]);
       if (existing) {
+        if (existing.user_id != req.userId) return res.status(403).json({ error: 'Access denied' });
         await db.run(
-          'UPDATE reflections SET adherence_score = ?, focus_score = ?, energy_score = ?, notes_success = ?, notes_struggles = ?, notes_improvements = ? WHERE id = ?',
-          [adherence_score, focus_score, energy_score, notes_success || '', notes_struggles || '', notes_improvements || '', existing.id]
+          'UPDATE reflections SET adherence_score = ?, focus_score = ?, energy_score = ?, notes_success = ?, notes_struggles = ?, notes_improvements = ? WHERE id = ? AND user_id = ?',
+          [adherence_score, focus_score, energy_score, notes_success || '', notes_struggles || '', notes_improvements || '', existing.id, req.userId]
         );
       } else {
         await db.run(
-          'INSERT INTO reflections (date, adherence_score, focus_score, energy_score, notes_success, notes_struggles, notes_improvements) VALUES (?, ?, ?, ?, ?, ?, ?)',
-          [date, adherence_score, focus_score, energy_score, notes_success || '', notes_struggles || '', notes_improvements || '']
+          'INSERT INTO reflections (date, adherence_score, focus_score, energy_score, notes_success, notes_struggles, notes_improvements, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          [date, adherence_score, focus_score, energy_score, notes_success || '', notes_struggles || '', notes_improvements || '', req.userId]
         );
       }
-      data = await db.get('SELECT * FROM reflections WHERE date = ?', [date]);
+      data = await db.get('SELECT * FROM reflections WHERE date = ? AND user_id = ?', [date, req.userId]);
     }
     res.status(201).json(data);
   } catch (err) {
@@ -485,15 +631,17 @@ app.post('/api/reflections', async (req, res) => {
 // ANALYTICS & SMART COACHING ENGINE
 // ==========================================
 
-app.get('/api/analytics', async (req, res) => {
+app.get('/api/analytics', requireAuth, async (req, res) => {
   try {
     let tasks, reflections;
     if (USE_SUPABASE) {
-      tasks = await db.all('tasks');
-      reflections = await db.all('reflections', 'date ASC');
+      const { data: t } = await supabase.from('tasks').select('*').eq('user_id', req.userId);
+      tasks = t || [];
+      const { data: r } = await supabase.from('reflections').select('*').eq('user_id', req.userId).order('date', { ascending: true });
+      reflections = r || [];
     } else {
-      tasks = await db.all('SELECT * FROM tasks');
-      reflections = await db.all('SELECT * FROM reflections ORDER BY date ASC');
+      tasks = await db.all('SELECT * FROM tasks WHERE user_id = ?', [req.userId]);
+      reflections = await db.all('SELECT * FROM reflections WHERE user_id = ? ORDER BY date ASC', [req.userId]);
     }
 
     const categoryStats = {};
@@ -571,7 +719,7 @@ app.get('/api/analytics', async (req, res) => {
 // MIGRATE LOCAL DATA TO SUPABASE
 // ==========================================
 
-app.post('/api/migrate', async (req, res) => {
+app.post('/api/migrate', requireAuth, async (req, res) => {
   if (!USE_SUPABASE) return res.status(400).json({ error: 'Supabase not configured' });
   try {
     const sqlite3 = require('sqlite3');
@@ -590,6 +738,7 @@ app.post('/api/migrate', async (req, res) => {
         if (payload.completed !== undefined) payload.completed = !!payload.completed;
         if (payload.alarm_enabled !== undefined) payload.alarm_enabled = !!payload.alarm_enabled;
         if (payload.milestone_id === null) payload.milestone_id = null;
+        payload.user_id = req.userId;
         delete payload.id;
         const { error } = await supabase.from(table).insert(payload);
         if (error) {
