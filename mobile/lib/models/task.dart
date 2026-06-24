@@ -54,6 +54,29 @@ class Task {
     );
   }
 
+  bool isActive() {
+    if (completed) return false;
+
+    final days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    final now = DateTime.now();
+    final currentDay = days[now.weekday % 7];
+
+    if (dayOfWeek.toLowerCase() != currentDay) return false;
+
+    final sh = int.tryParse(startTime.split(':').first) ?? 0;
+    final sm = int.tryParse(startTime.split(':').last) ?? 0;
+    final eh = int.tryParse(endTime.split(':').first) ?? 0;
+    final em = int.tryParse(endTime.split(':').last) ?? 0;
+
+    final start = DateTime(now.year, now.month, now.day, sh, sm);
+    var end = DateTime(now.year, now.month, now.day, eh, em);
+    if (end.isBefore(start)) {
+      end = end.add(const Duration(days: 1));
+    }
+
+    return !now.isBefore(start) && !now.isAfter(end);
+  }
+
   Map<String, dynamic> toJson() => {
     'title': title,
     'category': category,

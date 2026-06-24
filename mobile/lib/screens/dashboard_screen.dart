@@ -20,6 +20,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   Timer? _timer;
+  Timer? _activeTimer;
   final Map<String, Stopwatch> _stopwatches = {};
   final Map<String, Timer> _uiTimers = {};
 
@@ -33,11 +34,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _timer = Timer.periodic(const Duration(seconds: 30), (_) {
       context.read<AnalyticsService>().fetchAnalytics();
     });
+    _activeTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _activeTimer?.cancel();
     for (final t in _uiTimers.values) { t.cancel(); }
     super.dispose();
   }
@@ -423,6 +428,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _timelineItem(Task task) {
     final color = AetherColors.categoryColor(task.category);
+    final active = task.isActive();
     final sw = _stopwatches[task.id];
     final running = sw?.isRunning ?? false;
     final paused = sw != null && !sw.isRunning;
@@ -455,12 +461,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Container(
                     width: 12, height: 12,
                     decoration: BoxDecoration(
-                      color: task.completed ? AetherColors.emerald : AetherColors.textMuted,
+                      color: active
+                          ? AetherColors.rose
+                          : (task.completed ? AetherColors.emerald : AetherColors.textMuted),
                       shape: BoxShape.circle,
                       border: Border.all(color: AetherColors.bg, width: 2),
-                      boxShadow: task.completed
-                          ? [BoxShadow(color: AetherColors.emerald.withValues(alpha: 0.4), blurRadius: 6)]
-                          : null,
+                      boxShadow: active
+                          ? [BoxShadow(color: AetherColors.rose.withValues(alpha: 0.4), blurRadius: 6)]
+                          : (task.completed
+                              ? [BoxShadow(color: AetherColors.emerald.withValues(alpha: 0.4), blurRadius: 6)]
+                              : null),
                     ),
                   ),
                   Expanded(child: Container(width: 2, color: AetherColors.glassBorder)),
@@ -477,7 +487,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   decoration: BoxDecoration(
                     color: const Color(0x05FFFFFF),
                     border: Border(
-                      left: BorderSide(color: color, width: 3),
+                      left: BorderSide(color: active ? AetherColors.rose : color, width: 3),
                       top: const BorderSide(color: AetherColors.glassBorder),
                       right: const BorderSide(color: AetherColors.glassBorder),
                       bottom: const BorderSide(color: AetherColors.glassBorder),
@@ -492,10 +502,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           child: Text(task.title,
                               style: TextStyle(
                                 fontSize: 14, fontWeight: FontWeight.w600,
-                                color: task.completed ? AetherColors.textMuted : AetherColors.textBright,
-                                decoration: task.completed ? TextDecoration.lineThrough : null,
-                              )),
-                        ),
+                                  color: task.completed ? AetherColors.textMuted : AetherColors.textBright,
+                                  decoration: task.completed ? TextDecoration.lineThrough : null,
+                              ))),
+                        if (active)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 6),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AetherColors.rose.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(width: 6, height: 6, decoration: const BoxDecoration(color: AetherColors.rose, shape: BoxShape.circle)),
+                                  const SizedBox(width: 4),
+                                  const Text('LIVE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AetherColors.rose)),
+                                ],
+                              ),
+                            ),
+                          ),
                         if (task.completed)
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
