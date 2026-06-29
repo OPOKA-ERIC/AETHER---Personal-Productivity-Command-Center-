@@ -1644,10 +1644,11 @@ window.addEventListener('DOMContentLoaded', () => {
 function bootApp() {
   navigateToView(window.location.hash.slice(1) || 'dashboard');
   // One-time backfill: assign dates to tasks that are missing them
-  if (!localStorage.getItem('aether_dates_backfilled')) {
-    apiFetch('/api/backfill-dates', { method: 'POST' })
+  // v2: force re-run to fix buggy first version that used wrong backfill direction
+  if (!localStorage.getItem('aether_dates_backfilled_v2')) {
+    apiFetch('/api/backfill-dates?force=true', { method: 'POST' })
       .then(r => { if (r.tasksUpdated > 0) console.log(`Backfilled dates for ${r.tasksUpdated} tasks`); })
       .catch(() => {});
-    localStorage.setItem('aether_dates_backfilled', '1');
+    localStorage.setItem('aether_dates_backfilled_v2', '1');
   }
 }

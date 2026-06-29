@@ -774,16 +774,16 @@ app.post('/api/migrate', requireAuth, async (req, res) => {
 app.post('/api/backfill-dates', requireAuth, async (req, res) => {
   try {
     let tasks;
+    const force = req.query.force === 'true';
     if (USE_SUPABASE) {
-      const { data, error } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('user_id', req.userId)
-        .is('date', null);
+      let query = supabase.from('tasks').select('*').eq('user_id', req.userId);
+      if (!force) query = query.is('date', null);
+      const { data, error } = await query;
       if (error) throw error;
       tasks = data || [];
     } else {
-      tasks = await db.all("SELECT * FROM tasks WHERE user_id = ? AND (date IS NULL OR date = '')", [req.userId]);
+      const condition = force ? '1=1' : "(date IS NULL OR date = '')";
+      tasks = await db.all(`SELECT * FROM tasks WHERE user_id = ? AND ${condition}`, [req.userId]);
     }
 
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -797,7 +797,7 @@ app.post('/api/backfill-dates', requireAuth, async (req, res) => {
       const created = new Date(task.created_at || Date.now());
       const createdDay = created.getDay();
       let diff = targetIdx - createdDay;
-      if (diff > 0) diff -= 7;
+      if (diff < 0) diff += 7; // target already passed this week → go to next week
       const date = new Date(created);
       date.setDate(created.getDate() + diff);
       const dateStr = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
