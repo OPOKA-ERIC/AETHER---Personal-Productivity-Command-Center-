@@ -10,16 +10,34 @@ class TaskService extends ChangeNotifier {
   List<Task> get tasks => _tasks;
   bool get loading => _loading;
 
-  List<Task> tasksForDay(String dayOfWeek) {
+  List<Task> tasksForDay(String dayOfWeek, {String? date}) {
     return _tasks
-        .where((t) => t.dayOfWeek.toLowerCase() == dayOfWeek.toLowerCase())
+        .where((t) {
+          final dayMatch = t.dayOfWeek.toLowerCase() == dayOfWeek.toLowerCase();
+          if (date != null && t.date != null && t.date!.isNotEmpty) {
+            return dayMatch && t.date == date;
+          }
+          return dayMatch;
+        })
         .toList()
       ..sort((a, b) => a.startTime.compareTo(b.startTime));
   }
 
   List<Task> get todaysTasks {
+    final now = DateTime.now();
+    final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     final days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-    return tasksForDay(days[DateTime.now().weekday - 1]);
+    final todayName = days[now.weekday - 1];
+    return _tasks
+        .where((t) {
+          final dayMatch = t.dayOfWeek.toLowerCase() == todayName;
+          if (t.date != null && t.date!.isNotEmpty) {
+            return dayMatch && t.date == dateStr;
+          }
+          return dayMatch;
+        })
+        .toList()
+      ..sort((a, b) => a.startTime.compareTo(b.startTime));
   }
 
   Future<void> fetchTasks() async {

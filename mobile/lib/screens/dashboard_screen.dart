@@ -916,6 +916,14 @@ class _QuickAddFormState extends State<_QuickAddForm> {
           child: ElevatedButton.icon(
             onPressed: () async {
               if (_titleCtrl.text.trim().isNotEmpty) {
+                final now = DateTime.now();
+                final days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                final todayIdx = now.weekday - 1;
+                final targetIdx = days.indexOf(_day);
+                var diff = targetIdx - todayIdx;
+                if (diff < 0) diff += 7;
+                final taskDate = now.add(Duration(days: diff));
+                final dateStr = '${taskDate.year}-${taskDate.month.toString().padLeft(2, '0')}-${taskDate.day.toString().padLeft(2, '0')}';
                 final err = await context.read<TaskService>().createTask(Task(
                   id: '', userId: '',
                   title: _titleCtrl.text.trim(),
@@ -925,6 +933,7 @@ class _QuickAddFormState extends State<_QuickAddForm> {
                   endTime: _endCtrl.text.trim(),
                   alarmEnabled: _alarm,
                   milestoneId: _milestoneId.isNotEmpty ? _milestoneId : null,
+                  date: dateStr,
                   createdAt: DateTime.now().toIso8601String(),
                 ));
                 if (err != null && context.mounted) {

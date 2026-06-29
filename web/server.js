@@ -768,6 +768,56 @@ app.post('/api/migrate', requireAuth, async (req, res) => {
 });
 
 // ==========================================
+// BACKFILL: assign dates to tasks missing them
+// ==========================================
+
+app.post('/api/backfill-dates', requireAuth, async (req, res) => {
+  try {
+    let tasks;
+    if (USE_SUPABASE) {
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('user_id', req.userId)
+        .is('date', null);
+      if (error) throw error;
+      tasks = data || [];
+    } else {
+      tasks = await db.all("SELECT * FROM tasks WHERE user_id = ? AND (date IS NULL OR date = '')", [req.userId]);
+    }
+
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    let updated = 0;
+
+    for (const task of tasks) {
+      const targetDay = task.day_of_week;
+      const targetIdx = dayNames.indexOf(targetDay);
+      if (targetIdx === -1) continue;
+
+      const created = new Date(task.created_at || Date.now());
+      const createdDay = created.getDay();
+      let diff = targetIdx - createdDay;
+      if (diff > 0) diff -= 7;
+      const date = new Date(created);
+      date.setDate(created.getDate() + diff);
+      const dateStr = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+
+      if (USE_SUPABASE) {
+        const { error } = await supabase.from('tasks').update({ date: dateStr }).eq('id', task.id).eq('user_id', req.userId);
+        if (error) throw error;
+      } else {
+        await db.run('UPDATE tasks SET date = ? WHERE id = ? AND user_id = ?', [dateStr, task.id, req.userId]);
+      }
+      updated++;
+    }
+
+    res.json({ message: 'Backfill complete', tasksUpdated: updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================
 // NORMALIZE TASK (Supabase booleans → 0/1 for frontend)
 // ==========================================
 

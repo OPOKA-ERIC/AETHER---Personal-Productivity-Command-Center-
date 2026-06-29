@@ -57,8 +57,12 @@ class Task {
   bool isActive() {
     if (completed) return false;
 
-    final days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     final now = DateTime.now();
+    final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+    if (date != null && date!.isNotEmpty && date != dateStr) return false;
+
+    final days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     final currentDay = days[now.weekday % 7];
 
     if (dayOfWeek.toLowerCase() != currentDay) return false;

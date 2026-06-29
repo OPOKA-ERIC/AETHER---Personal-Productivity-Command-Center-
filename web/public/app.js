@@ -255,8 +255,11 @@ function renderDashboard() {
   }
 
   // 2. Render Today's timeline slots
-  const todayTasks = STATE.tasks.filter(t => t.day_of_week === todayName)
-                                 .sort((a, b) => a.start_time.localeCompare(b.start_time));
+  const todayDate = getCurrentDateStr();
+  const todayTasks = STATE.tasks.filter(t => {
+    if (t.date) return t.day_of_week === todayName && t.date === todayDate;
+    return t.day_of_week === todayName;
+  }).sort((a, b) => a.start_time.localeCompare(b.start_time));
   
   const listContainer = document.getElementById('today-timeline-list');
   const emptyState = document.getElementById('dashboard-empty-schedule');
@@ -551,7 +554,10 @@ function openDayDetail(dateStr) {
 
   // Tasks for the day-of-week matching this date
   const dayOfWeek = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date(dateStr + 'T12:00:00').getDay()];
-  const dayTasks = STATE.tasks.filter(t => t.day_of_week === dayOfWeek);
+  const dayTasks = STATE.tasks.filter(t => {
+    if (t.date) return t.date === dateStr;
+    return t.day_of_week === dayOfWeek;
+  });
   const tasksContainer = document.getElementById('day-detail-tasks');
 
   if (dayTasks.length === 0 && !ref) {
@@ -942,8 +948,10 @@ function startGlobalSystemTick() {
 // Scan schedule and matching alarm alerts
 function scanScheduleForAlarms(currentHHMM) {
   const currentDay = getCurrentDayOfWeek();
+  const todayDate = getCurrentDateStr();
 
   STATE.tasks.forEach(task => {
+    if (task.date && task.date !== todayDate) return;
     if (task.day_of_week === currentDay && task.alarm_enabled && !task.completed) {
       // Start of Timeblock check
       if (task.start_time === currentHHMM) {
@@ -1227,9 +1235,16 @@ function getCurrentDayOfWeek() {
   return days[new Date().getDay()];
 }
 
+function getCurrentDateStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
 function isTaskCurrentlyActive(task) {
   const now = new Date();
   const currentDay = getCurrentDayOfWeek();
+  const todayDate = getCurrentDateStr();
+  if (task.date && task.date !== todayDate) return false;
   if (task.day_of_week !== currentDay) return false;
 
   const [sh, sm] = task.start_time.split(':').map(Number);
@@ -1628,4 +1643,11 @@ window.addEventListener('DOMContentLoaded', () => {
 // Called by auth.js after successful authentication
 function bootApp() {
   navigateToView(window.location.hash.slice(1) || 'dashboard');
+  // One-time backfill: assign dates to tasks that are missing them
+  if (!localStorage.getItem('aether_dates_backfilled')) {
+    apiFetch('/api/backfill-dates', { method: 'POST' })
+      .then(r => { if (r.tasksUpdated > 0) console.log(`Backfilled dates for ${r.tasksUpdated} tasks`); })
+      .catch(() => {});
+    localStorage.setItem('aether_dates_backfilled', '1');
+  }
 }
