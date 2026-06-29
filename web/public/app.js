@@ -257,8 +257,8 @@ function renderDashboard() {
   // 2. Render Today's timeline slots
   const todayDate = getCurrentDateStr();
   const todayTasks = STATE.tasks.filter(t => {
-    if (t.date) return t.day_of_week === todayName && t.date === todayDate;
-    return t.day_of_week === todayName;
+    if (t.date) return t.day_of_week.toLowerCase() === todayName.toLowerCase() && t.date === todayDate;
+    return t.day_of_week.toLowerCase() === todayName.toLowerCase();
   }).sort((a, b) => a.start_time.localeCompare(b.start_time));
   
   const listContainer = document.getElementById('today-timeline-list');
@@ -422,7 +422,7 @@ function renderWeeklyPlanner() {
     const dayDate = getDateForDayInWeek(day);
     const dayTasks = STATE.tasks.filter(t => {
       if (t.date) return t.date === dayDate;
-      return t.day_of_week === day && STATE.weekOffset === 0;
+      return t.day_of_week.toLowerCase() === day.toLowerCase() && STATE.weekOffset === 0;
     }).sort((a, b) => a.start_time.localeCompare(b.start_time));
     
     // Update count indicator badge
@@ -556,7 +556,7 @@ function openDayDetail(dateStr) {
   const dayOfWeek = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date(dateStr + 'T12:00:00').getDay()];
   const dayTasks = STATE.tasks.filter(t => {
     if (t.date) return t.date === dateStr;
-    return t.day_of_week === dayOfWeek;
+    return t.day_of_week.toLowerCase() === dayOfWeek.toLowerCase();
   });
   const tasksContainer = document.getElementById('day-detail-tasks');
 
@@ -952,7 +952,7 @@ function scanScheduleForAlarms(currentHHMM) {
 
   STATE.tasks.forEach(task => {
     if (task.date && task.date !== todayDate) return;
-    if (task.day_of_week === currentDay && task.alarm_enabled && !task.completed) {
+    if (task.day_of_week.toLowerCase() === currentDay.toLowerCase() && task.alarm_enabled && !task.completed) {
       // Start of Timeblock check
       if (task.start_time === currentHHMM) {
         triggerActiveAlarm(task, 'Focus Block Started', `${task.title} starts now!`);
@@ -1245,7 +1245,7 @@ function isTaskCurrentlyActive(task) {
   const currentDay = getCurrentDayOfWeek();
   const todayDate = getCurrentDateStr();
   if (task.date && task.date !== todayDate) return false;
-  if (task.day_of_week !== currentDay) return false;
+  if (task.day_of_week.toLowerCase() !== currentDay.toLowerCase()) return false;
 
   const [sh, sm] = task.start_time.split(':').map(Number);
   const [eh, em] = task.end_time.split(':').map(Number);
